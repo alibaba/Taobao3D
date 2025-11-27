@@ -1,0 +1,79 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "HRM^2Avatar: High-Fidelity Real-Time Mobile Avatars from Monocular Phone Scans"
+version: 1.0.0
+date-released: 2025-06-01
+url: "https://acennr-engine.github.io/HRM2Avatar/"
+authors:
+  - family-names: Shi
+    given-names: Chao
+  - family-names: Jia
+    given-names: Shenghao
+  - family-names: Liu
+    given-names: Jinhui
+  - family-names: Zhang
+    given-names: Yong
+  - family-names: Zhu
+    given-names: Liangchao
+  - family-names: Yang
+    given-names: Zhonglei
+  - family-names: Ma
+    given-names: Jinze
+  - family-names: Niu
+    given-names: Chaoyue
+  - family-names: Lv
+    given-names: Chengfei
+repository-code: "https://github.com/alibaba/Taobao3D"
+license: Apache License 2.0
+keywords:
+  - Gaussian Splatting
+  - Mobile Avatar
+  - Real-time Rendering
+  - Monocular Capture
+  - Apple Vision Pro
+  - iPhone 15 Pro Max
+  - Metal
+abstract: >-
+  We present HRM2Avatar, a framework for creating high-fidelity avatars from monocular phone scans, 
+  which can be rendered and animated in real time on mobile devices. Monocular capture with smartphones 
+  provides a low-cost alternative to studio-grade multi-camera rigs, making avatar digitization 
+  accessible to non-expert users. Reconstructing high-fidelity avatars from single-view video sequences 
+  poses challenges due to limited visual and geometric data. To address these limitations, at the data 
+  level, our method leverages two types of data captured with smartphones: static pose sequences for 
+  texture reconstruction and dynamic motion sequences for learning pose-dependent deformations and 
+  lighting changes. At the representation level, we employ a lightweight yet expressive representation 
+  to reconstruct high-fidelity digital humans from sparse monocular data. We extract garment meshes from 
+  monocular data to model clothing deformations effectively, and attach illumination-aware Gaussians to 
+  the mesh surface, enabling high-fidelity rendering and capturing pose-dependent lighting. This 
+  representation efficiently learns high-resolution and dynamic information from monocular data, enabling 
+  the creation of detailed avatars. At the rendering level, real-time performance is critical for 
+  animating high-fidelity avatars in AR/VR, social gaming, and on-device creation. Our GPU-driven 
+  rendering pipeline delivers 120 FPS on mobile devices and 90 FPS on standalone VR devices at 2K resolution,
+   over 2.7× faster than representative mobile-engine baselines. Experiments show that HRM2Avatar delivers 
+   superior visual realism and real-time interactivity, outperforming state-of-the-art monocular methods.
+preferred-citation:
+  type: article
+  title: "HRM^2Avatar: High-Fidelity Real-Time Mobile Avatars from Monocular Phone Scans"
+  authors:
+    - family-names: Shi
+      given-names: Chao
+    - family-names: Jia
+      given-names: Shenghao
+    - family-names: Liu
+      given-names: Jinhui
+    - family-names: Zhang
+      given-names: Yong
+    - family-names: Zhu
+      given-names: Liangchao
+    - family-names: Yang
+      given-names: Zhonglei
+    - family-names: Ma
+      given-names: Jinze
+    - family-names: Niu
+      given-names: Chaoyue
+    - family-names: Lv
+      given-names: Chengfei
+  year: 2025
+  doi: 10.1145/3757377.3763894
+  url: "https://arxiv.org/abs/2510.13587"

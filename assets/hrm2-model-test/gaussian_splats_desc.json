@@ -1,0 +1,41 @@
+{
+  "splat_count": 533695,
+  "pos_format": 2,
+  "scale_format": 3,
+  "sh_format": 5,
+  "color_width": 2048,
+  "color_height": 272,
+  "data": "gaussian_splats.bytes",
+  "pos_data": {
+    "offset": 0,
+    "size": 2134784
+  },
+  "color_data": {
+    "offset": 2134784,
+    "size": 2228224
+  },
+  "other_data": {
+    "offset": 4363008,
+    "size": 4269560
+  },
+  "sh_data": {
+    "offset": 8632568,
+    "size": 3145728
+  },
+  "chunk_data": {
+    "offset": 11778296,
+    "size": 133440
+  },
+  "idx_data": {
+    "offset": 11911736,
+    "size": 2134780
+  },
+  "gaussian_prop_data": {
+    "offset": 14046516,
+    "size": 533696
+  },
+  "face_property_data": {
+    "offset": 14580212,
+    "size": 120988
+  }
+}
