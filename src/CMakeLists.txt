@@ -21,23 +21,3 @@ set_source_files_properties(
 
 target_link_libraries(AVATAR_CORE PUBLIC THIRD_LIB)
 
-if(TARGET_PLATFORM STREQUAL "PLATFORM_OSX")
-    set(MNN_PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-MacOS-CPU-GPU/Static" CACHE PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-MacOS-CPU-GPU/Static")
-    find_library(MNNFramework NAMES MNN PATHS ${MNN_PATH})
-    target_link_libraries(AVATAR_CORE PRIVATE ${MNNFramework}  
-                                "-framework Metal"
-                                "-framework Foundation")
-elseif(TARGET_PLATFORM STREQUAL "PLATFORM_IOS")
-    set(MNN_PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-iOS-CPU-GPU/Static" CACHE PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-iOS-CPU-GPU/Static")
-    find_library(MNNFramework NAMES MNN PATHS ${MNN_PATH})
-    target_link_libraries(AVATAR_CORE PRIVATE ${MNNFramework}  
-                            "-framework Metal"
-                            "-framework Foundation")
-elseif(TARGET_PLATFORM STREQUAL "PLATFORM_VISIONOS")
-    set(MNN_PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-visionOS-CPU-GPU/Static" CACHE PATH "${CMAKE_SOURCE_DIR}/third/mnn/MNN-visionOS-CPU-GPU/Static")
-    find_library(MNNFramework NAMES MNN PATHS ${MNN_PATH})
-    target_link_libraries(AVATAR_CORE PRIVATE ${MNNFramework}  
-                            "-framework Metal"
-                            "-framework Foundation")
-endif()
-

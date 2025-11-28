@@ -67,35 +67,12 @@ def make_project_visionos():
     # generate project by cmake
     make_project('visionos', cmd)
 
-def build_dependencies(platform):
-    #mnn
-    mnn_root = './third/mnn'
-    if platform == 'osx':
-        subprocess.call('./package_scripts/mac/buildFrameWork.sh', cwd = mnn_root)
-    elif platform == 'ios':
-        ## TODO::change to ios only
-        subprocess.call('./package_scripts/ios/buildiOS_withsimulator.sh', cwd = mnn_root)
-    elif platform == 'visionos':
-        subprocess.call('../mnn_build_visionos.sh', cwd = mnn_root)
-
-def check_dependencies(platform):
-    if platform == 'osx':
-        return os.path.exists(f'{root_dir}/third/mnn/MNN-MacOS-CPU-GPU')
-    elif platform == 'ios':
-        return os.path.exists(f'{root_dir}/third/mnn/MNN-iOS-CPU-GPU')
-    elif platform == 'visionos':
-        return os.path.exists(f'{root_dir}/third/mnn/MNN-visionOS-CPU-GPU') 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--remake', action='store_true', help='remove build dir to remake project')
     parser.add_argument('--platform', type=str, default='osx', help='supported platforms: ios, osx, visionos')
-    parser.add_argument('--rebuild_dependency', action='store_true', help='rebuild third party dependencies')
     args = parser.parse_args()
 
-    if args.rebuild_dependency or not check_dependencies(args.platform):
-        build_dependencies(args.platform)
-        
     if args.remake:
         delete_build_dir(args.platform)
 
