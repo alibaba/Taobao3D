@@ -1,3 +1,5 @@
 .vscode/
 build/
 HRM2Avatar/build/
+__pycache__/
+dist/
