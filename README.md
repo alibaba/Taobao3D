@@ -19,7 +19,7 @@ We aim to deliver high‑performance, scalable solutions that enable next‑gene
 - MoRE: 3D Visual Geometry Reconstruction Meets Mixture-of-Experts. [[Paper]](https://arxiv.org/abs/2510.27234) [[Project Page]](https://g-1nonly.github.io/MoRE_Website/)
 
 🙎 **3D Human / Avatar Modeling and Animation**
-- TaoAvatar: Real-Time Lifelike Full-Body Talking Avatars for Augmented Reality via 3D Gaussian Splatting (**CVPR 2025 Hightlight**). [[Paper]](https://arxiv.org/abs/2503.17032) [[Project Page]](https://pixelai-team.github.io/TaoAvatar/)
+- TaoAvatar: Real-Time Lifelike Full-Body Talking Avatars for Augmented Reality via 3D Gaussian Splatting (**CVPR 2025 Hightlight**). [[Paper]](https://arxiv.org/abs/2503.17032) [[Project Page]](https://pixelai-team.github.io/TaoAvatar/) [[Demo Code]](https://github.com/alibaba/MNN/blob/master/apps/Android/MnnTaoAvatar/README.md)
 - HRM2Avatar: High-Fidelity Real-Time Mobile Avatars from Monocular Phone Scans (**SIGGRAPH Asia 2025**). [[Paper]](https://arxiv.org/pdf/2510.13587) [[Project Page]](https://acennr-engine.github.io/HRM2Avatar/) [[Code]](https://github.com/alibaba/Taobao3D/tree/HRM2Avatar)
 
 
