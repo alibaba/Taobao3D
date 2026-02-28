@@ -12,18 +12,30 @@ We are the TaoTian Meta Technology Team(**淘天Meta技术团队**), dedicated t
 
 We aim to deliver high‑performance, scalable solutions that enable next‑generation digital experiences.
 
+# 🔥 News
+- Jan 26, 2026: We have 1 paper(Dens3R) accepted by ICLR 2026!
+- Feb 21, 2026: We have 5 papers(MoRE, VIAFormer, LoG3D, MatMart, FHAvatar) accepted by CVPR 2026! Congrats to all the authors!
+
 
 # Publications
 📷 **3D Reconstruction**
-- Dens3R: A Foundation Model for 3D Geometry Prediction. [[Paper]](https://arxiv.org/abs/2507.16290) [[Project Page]](https://g-1nonly.github.io/Dens3R/) [[Code]](https://github.com/alibaba/Taobao3D/tree/Dens3R)
-- MoRE: 3D Visual Geometry Reconstruction Meets Mixture-of-Experts. [[Paper]](https://arxiv.org/abs/2510.27234) [[Project Page]](https://g-1nonly.github.io/MoRE_Website/)
+- Dens3R: A Foundation Model for 3D Geometry Prediction.(**ICLR 2026**) [[Paper]](https://arxiv.org/abs/2507.16290) [[Project Page]](https://g-1nonly.github.io/Dens3R/) [[Code]](https://github.com/alibaba/Taobao3D/tree/Dens3R)
+- MoRE: 3D Visual Geometry Reconstruction Meets Mixture-of-Experts.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2510.27234) [[Project Page]](https://g-1nonly.github.io/MoRE_Website/) [Code]
+- VIAFormer: Voxel-Image Alignment Transformer for High-Fidelity Voxel Refinement.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2601.13664)
+- LoG3D: Ultra-High-Resolution 3D Shape Modeling via Local-to-Global Partitioning.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2511.10040)
+- MatMart: Material Reconstruction of 3D Objects via Diffusion.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2511.18900)
 
 🙎 **3D Human / Avatar Modeling and Animation**
 - TaoAvatar: Real-Time Lifelike Full-Body Talking Avatars for Augmented Reality via 3D Gaussian Splatting (**CVPR 2025 Hightlight**). [[Paper]](https://arxiv.org/abs/2503.17032) [[Project Page]](https://pixelai-team.github.io/TaoAvatar/) [[Demo Code]](https://github.com/alibaba/MNN/blob/master/apps/Android/MnnTaoAvatar/README.md)
 - HRM2Avatar: High-Fidelity Real-Time Mobile Avatars from Monocular Phone Scans (**SIGGRAPH Asia 2025**). [[Paper]](https://arxiv.org/pdf/2510.13587) [[Project Page]](https://acennr-engine.github.io/HRM2Avatar/) [[Code]](https://github.com/alibaba/Taobao3D/tree/HRM2Avatar)
+- FHAvatar: Fast and High-Fidelity Reconstruction of Face-and-Hair Composable 3D Head Avatar from Few Casual Captures. [Paper]
 
 
 # Join Us
 We are expanding our team and looking for talents passionate about 3D vision, graphics, and AI.
-- 3D Research Intern [[link]](https://talent.taotian.com/campus/position-detail?lang=zh&positionId=2020503)
-- LLM Algorithm Engineer [[link]](https://talent.taotian.com/off-campus/position-detail?lang=zh&positionId=7000043123)
+
+| Job Name     | Job Type | QR Code  | Link |
+| :-----------: | :-----------: | :-----------: | :-----------: |
+| 研究型实习生-三维重建和3D模型生成方向        | Intern       | <img src="./assets/3D_Intern.png" width = "100" alt="3D_Intern"> | [link](https://talent.taotian.com/campus/position-detail?lang=zh&positionId=2020503) |
+| T-Star实习生-3D重建大模型    | Intern       | <img src="./assets/T-star_Intern.png" width = "100" alt="T-star_Intern"> | [link](https://talent.taotian.com/campus/position-detail?lang=zh&positionId=199900320034) |
+| 正式员工-大语言模型算法工程师    | Full-time    | <img src="./assets/LLM_full_time.png" width = "100" alt="LLM_full_time"> | [link](https://talent.taotian.com/off-campus/position-detail?lang=zh&positionId=7000043123) |
