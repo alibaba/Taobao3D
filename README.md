@@ -34,8 +34,10 @@ We aim to deliver high‑performance, scalable solutions that enable next‑gene
 # Join Us
 We are expanding our team and looking for talents passionate about 3D vision, graphics, and AI.
 
-| Job Name     | Job Type | QR Code  | Link |
-| :-----------: | :-----------: | :-----------: | :-----------: |
-| 研究型实习生-三维重建和3D模型生成方向        | Intern       | <img src="./assets/3D_Intern.png" width = "100" alt="3D_Intern"> | [link](https://talent.taotian.com/campus/position-detail?lang=zh&positionId=2020503) |
-| T-Star实习生-3D重建大模型    | Intern       | <img src="./assets/T-star_Intern.png" width = "100" alt="T-star_Intern"> | [link](https://talent.taotian.com/campus/position-detail?lang=zh&positionId=199900320034) |
-| 正式员工-大语言模型算法工程师    | Full-time    | <img src="./assets/LLM_full_time.png" width = "100" alt="LLM_full_time"> | [link](https://talent.taotian.com/off-campus/position-detail?lang=zh&positionId=7000043123) |
+| Job Name     | Job Type | Link |
+| :-----------: | :-----------: | :-----------: |
+| 研究型实习生-三维重建和3D模型生成方向        | Intern       | [link](https://campus-talent.alibaba.com/campus/position/199903900065?deptCodes=T8B7EB) |
+| 研究型实习生-端侧LLM加速&语音大模型加速方向| Intern |  [link](https://campus-talent.alibaba.com/campus/position/199903880041?deptCodes=T8B7EB) |
+| T-Star实习生-3D重建大模型    | Intern       | [link](https://campus-talent.alibaba.com/campus/position/199903920039?deptCodes=T8B7EB) |
+| T-Star实习生-大语言模型 | Intern | [link](https://campus-talent.alibaba.com/campus/position/199903820039?deptCodes=T8B7EB) |
+| 正式员工-大语言模型算法工程师    | Full-time    | [link](https://talent.taotian.com/off-campus/position-detail?lang=zh&positionId=7000043123) |
