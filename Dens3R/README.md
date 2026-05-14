@@ -30,7 +30,9 @@ conda activate dens3r
 pip install -r requirements.txt
 
 # download checkpoints
-TODO: The open-sourcing of the model ckpt is currently under approval.
+Please visit https://modelscope.cn/models/Taobao3D/Dens3R/files for model downloading.
+# unify.pth: The complete checkpoint v1.0 version trained on public datasets without using any of our internal proprietary datasets.
+# normal.pth: The checkpoint is only for normal prediction, trained on all datasets. This checkpoint achieves normal estimation metrics consistent with those reported in our paper, so we specifically release this normal model separately.
 ```
 
 #### 1.2 Install COLMAP[Required]
