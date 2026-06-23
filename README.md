@@ -18,7 +18,7 @@ We aim to deliver high‑performance, scalable solutions that enable next‑gene
 
 
 # Publications
-📷 **3D Reconstruction**
+📷 **3D Reconstruction and Generation**
 - VIAFormer: Voxel-Image Alignment Transformer for High-Fidelity Voxel Refinement.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2601.13664)
 - LoG3D: Ultra-High-Resolution 3D Shape Modeling via Local-to-Global Partitioning.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2511.10040)
 - MatMart: Material Reconstruction of 3D Objects via Diffusion.(**CVPR 2026**) [[Paper]](https://arxiv.org/abs/2511.18900)
