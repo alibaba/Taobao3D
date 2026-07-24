@@ -1,0 +1,66 @@
+# 3D Reconstruction and Generation
+- id: viaformer
+  title: "VIAFormer: Voxel-Image Alignment Transformer for High-Fidelity Voxel Refinement"
+  venue: "CVPR 2026"
+  category: recon
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2601.13664" }
+
+- id: log3d
+  title: "LoG3D: Ultra-High-Resolution 3D Shape Modeling via Local-to-Global Partitioning"
+  venue: "CVPR 2026"
+  category: recon
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2511.10040" }
+
+- id: matmart
+  title: "MatMart: Material Reconstruction of 3D Objects via Diffusion"
+  venue: "CVPR 2026"
+  category: recon
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2511.18900" }
+
+- id: more
+  title: "MoRE: 3D Visual Geometry Reconstruction Meets Mixture-of-Experts"
+  venue: "CVPR 2026"
+  category: recon
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2510.27234" }
+    - { label: "Project Page", url: "https://g-1nonly.github.io/MoRE_Website/" }
+    - { label: "Code" }
+
+- id: dens3r
+  title: "Dens3R: A Foundation Model for 3D Geometry Prediction"
+  venue: "ICLR 2026"
+  category: recon
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2507.16290" }
+    - { label: "Project Page", url: "https://g-1nonly.github.io/Dens3R/" }
+    - { label: "Code", url: "https://github.com/alibaba/Taobao3D/tree/Dens3R" }
+
+# 3D Human / Avatar Modeling and Animation
+- id: fhavatar
+  title: "FHAvatar: Fast and High-Fidelity Reconstruction of Face-and-Hair Composable 3D Head Avatar from Few Casual Captures"
+  venue: "CVPR 2026"
+  category: avatar
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2603.23345" }
+
+- id: taoavatar
+  title: "TaoAvatar: Real-Time Lifelike Full-Body Talking Avatars for Augmented Reality via 3D Gaussian Splatting"
+  venue: "CVPR 2025 Highlight"
+  category: avatar
+  highlight: true
+  links:
+    - { label: "Paper", url: "https://arxiv.org/abs/2503.17032" }
+    - { label: "Project Page", url: "https://pixelai-team.github.io/TaoAvatar/" }
+    - { label: "Demo Code", url: "https://github.com/alibaba/MNN/blob/master/apps/Android/MnnTaoAvatar/README.md" }
+
+- id: hrm2avatar
+  title: "HRM2Avatar: High-Fidelity Real-Time Mobile Avatars from Monocular Phone Scans"
+  venue: "SIGGRAPH Asia 2025"
+  category: avatar
+  links:
+    - { label: "Paper", url: "https://arxiv.org/pdf/2510.13587" }
+    - { label: "Project Page", url: "https://acennr-engine.github.io/HRM2Avatar/" }
+    - { label: "Code", url: "https://github.com/alibaba/Taobao3D/tree/HRM2Avatar" }

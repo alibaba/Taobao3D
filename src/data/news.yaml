@@ -1,0 +1,9 @@
+- id: cvpr-2026
+  date: "2026-02-21"
+  text_en: "We have 5 papers (MoRE, VIAFormer, LoG3D, MatMart, FHAvatar) accepted by CVPR 2026! Congrats to all the authors!"
+  text_zh: "我们有 5 篇论文（MoRE、VIAFormer、LoG3D、MatMart、FHAvatar）被 CVPR 2026 接收！恭喜所有作者！"
+
+- id: iclr-2026
+  date: "2026-01-26"
+  text_en: "We have 1 paper (Dens3R) accepted by ICLR 2026!"
+  text_zh: "我们有 1 篇论文（Dens3R）被 ICLR 2026 接收！"

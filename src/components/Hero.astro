@@ -1,0 +1,84 @@
+---
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const base = import.meta.env.BASE_URL;
+const teaser = `${base}/teaser.mp4`.replace(/\/+/g, '/');
+---
+
+<section id="top" class="relative">
+  {/* Phones (portrait): fill the screen height, center the full uncropped video
+      on a dark section. md+ : natural 16:9 at full width (overflows the fold a
+      little, so the bottom reveals on scroll). No cropping either way. */}
+  <div
+    class="relative flex h-[100svh] w-full items-center justify-center overflow-hidden bg-slate-900 md:block md:h-auto"
+  >
+    <video
+      src={teaser}
+      autoplay
+      loop
+      muted
+      playsinline
+      class="block max-h-full w-full object-contain md:max-h-none"
+    ></video>
+
+    {/* Scroll hint, fades out as the page scrolls. */}
+    <div class="hero-hint pointer-events-none absolute inset-x-0 bottom-8 flex justify-center">
+      <svg
+        class="h-7 w-7 text-white/90 drop-shadow"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    </div>
+  </div>
+
+  {/* Title + description below the video, fading/sliding in on scroll. */}
+  <div class="hero-reveal mx-auto max-w-3xl px-4 py-16 text-center sm:px-6 lg:py-24">
+    <h1 class="hero-title text-5xl text-slate-900 sm:text-7xl">
+      Taobao<span class="hero-title__3d">3D</span>
+    </h1>
+    <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-slate-600">
+      {t.hero.description}
+    </p>
+  </div>
+
+  <noscript>
+    <style>
+      .hero-reveal,
+      .site-header--reveal {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .hero-hint {
+        display: none;
+      }
+    </style>
+  </noscript>
+</section>
+
+<script>
+  // Drive a 0→1 reveal value from scroll position within the first viewport.
+  const root = document.documentElement;
+  const update = () => {
+    const vh = window.innerHeight || 1;
+    const p = Math.min(Math.max(window.scrollY / (vh * 0.8), 0), 1);
+    root.style.setProperty('--scroll-reveal', p.toFixed(3));
+    root.classList.toggle('header-shown', p > 0.5);
+  };
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+</script>

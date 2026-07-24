@@ -1,0 +1,159 @@
+---
+import { getRelativeLocaleUrl } from 'astro:i18n';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  /** Route segment of the current page ('' for home, e.g. 'about'). */
+  path?: string;
+  /** When true, the header starts hidden and fades in on scroll (home hero). */
+  reveal?: boolean;
+}
+
+const { lang, path = '', reveal = false } = Astro.props;
+const t = useTranslations(lang);
+
+// A nav item is active on its own page and on nested pages (e.g. blog posts).
+const isActive = (key: string) => key === path || path.startsWith(`${key}/`);
+
+const home = getRelativeLocaleUrl(lang, '');
+const logo = `${import.meta.env.BASE_URL}/favicon.svg`.replace(/\/+/g, '/');
+const links = [
+  { key: '', label: t.nav.home },
+  { key: 'demo', label: t.nav.demo },
+  { key: 'blog', label: t.nav.blog },
+  { key: 'publications', label: t.nav.publications },
+  { key: 'jobs', label: t.nav.jobs },
+];
+
+// Language switch keeps the visitor on the same page in the other locale.
+const switchLinks = [
+  { code: 'zh' as Lang, label: '中文', href: getRelativeLocaleUrl('zh', path) },
+  { code: 'en' as Lang, label: 'EN', href: getRelativeLocaleUrl('en', path) },
+];
+---
+
+<header
+  class:list={[
+    'fixed inset-x-0 top-0 z-50 border-b border-slate-200/70 bg-white/80 backdrop-blur',
+    reveal && 'site-header--reveal',
+  ]}
+>
+  <nav class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <a href={home} class="flex items-center font-semibold text-slate-900">
+      <img src={logo} alt={t.brand} class="h-8 w-8" />
+    </a>
+
+    <!-- Desktop nav -->
+    <div class="hidden items-center gap-1 sm:flex sm:gap-2">
+      {
+        links.map((l) => (
+          <a
+            href={getRelativeLocaleUrl(lang, l.key)}
+            aria-current={isActive(l.key) ? 'page' : undefined}
+            class:list={[
+              'rounded-md px-2.5 py-2 text-sm font-medium transition sm:px-3',
+              isActive(l.key)
+                ? 'bg-brand-50 text-brand-700'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+            ]}
+          >
+            {l.label}
+          </a>
+        ))
+      }
+
+      <!-- Language switch -->
+      <div class="ml-1 flex items-center rounded-md border border-slate-200 p-0.5 text-xs font-semibold">
+        {
+          switchLinks.map((s) => (
+            <a
+              href={s.href}
+              aria-current={s.code === lang ? 'true' : undefined}
+              class:list={[
+                'rounded px-2 py-1 transition',
+                s.code === lang
+                  ? 'bg-brand-500 text-white'
+                  : 'text-slate-500 hover:text-slate-900',
+              ]}
+            >
+              {s.label}
+            </a>
+          ))
+        }
+      </div>
+
+      <a
+        href="https://github.com/alibaba/Taobao3D"
+        target="_blank"
+        rel="noreferrer"
+        class="ml-1 rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
+      >
+        {t.nav.github}
+      </a>
+    </div>
+
+    <!-- Mobile menu (no-JS <details> dropdown) -->
+    <details class="group relative sm:hidden">
+      <summary
+        class="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 [&::-webkit-details-marker]:hidden"
+        aria-label="Menu"
+      >
+        <svg class="h-6 w-6 group-open:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+        <svg class="hidden h-6 w-6 group-open:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6l-12 12" />
+        </svg>
+      </summary>
+
+      <div class="absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
+        {
+          links.map((l) => (
+            <a
+              href={getRelativeLocaleUrl(lang, l.key)}
+              aria-current={isActive(l.key) ? 'page' : undefined}
+              class:list={[
+                'block px-4 py-2.5 text-sm font-medium transition',
+                isActive(l.key)
+                  ? 'bg-brand-50 text-brand-700'
+                  : 'text-slate-700 hover:bg-slate-100',
+              ]}
+            >
+              {l.label}
+            </a>
+          ))
+        }
+
+        <div class="my-1.5 border-t border-slate-100"></div>
+
+        <div class="flex items-center gap-2 px-4 py-2">
+          {
+            switchLinks.map((s) => (
+              <a
+                href={s.href}
+                aria-current={s.code === lang ? 'true' : undefined}
+                class:list={[
+                  'rounded px-2.5 py-1 text-xs font-semibold transition',
+                  s.code === lang
+                    ? 'bg-brand-500 text-white'
+                    : 'text-slate-500 hover:text-slate-900',
+                ]}
+              >
+                {s.label}
+              </a>
+            ))
+          }
+          <a
+            href="https://github.com/alibaba/Taobao3D"
+            target="_blank"
+            rel="noreferrer"
+            class="ml-auto text-sm font-medium text-slate-700 hover:text-brand-600"
+          >
+            {t.nav.github}
+          </a>
+        </div>
+      </div>
+    </details>
+  </nav>
+</header>

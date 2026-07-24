@@ -1,0 +1,45 @@
+---
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Demo source (Taobao production URL).
+const demoUrl =
+  'https://market.m.taobao.com/app/T3dShared/acennr-engine-examples/index.html';
+---
+
+<section
+  id="demo"
+  class="relative scroll-mt-20 overflow-hidden bg-gradient-to-b from-white via-slate-50 to-white py-20"
+>
+  <div class="relative z-10 mx-auto max-w-6xl px-4 sm:px-6">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{t.demo.heading}</h2>
+      <p class="mt-3 max-w-2xl text-slate-600">{t.demo.intro}</p>
+    </div>
+
+    <div class="mt-12 flex flex-col items-start gap-6">
+      <div class="relative w-full">
+        <!-- Full-width floating window (aligned to the page content width) -->
+        <div
+          class="h-[80vh] max-h-[820px] min-h-[520px] w-full overflow-hidden border border-slate-200 bg-white shadow-[0_30px_60px_-20px_rgba(15,23,42,0.25)] ring-1 ring-slate-900/5"
+        >
+          <iframe
+            src={demoUrl}
+            title={t.demo.heading}
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            allow="xr-spatial-tracking; accelerometer; gyroscope; camera; fullscreen"
+            class="h-full w-full border-0"></iframe>
+        </div>
+      </div>
+
+      <p class="w-full text-right text-sm text-slate-400">{t.demo.disclaimer}</p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,62 @@
+---
+import { getCollection } from 'astro:content';
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const all = await getCollection('publications');
+---
+
+<section id="publications" class="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
+  <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{t.publications.heading}</h2>
+
+  <div class="mt-10 grid gap-4">
+    {
+      all.map((p) => (
+        <article class="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-500/50 hover:shadow-sm">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <h4 class="max-w-3xl font-semibold leading-snug text-slate-900">
+              {p.data.title}
+            </h4>
+            <span
+              class:list={[
+                'shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold',
+                p.data.highlight
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-brand-100 text-brand-700',
+              ]}
+            >
+              {p.data.venue}
+            </span>
+          </div>
+
+          {p.data.links.length > 0 && (
+            <div class="mt-3 flex flex-wrap gap-2">
+              {p.data.links.map((l) =>
+                l.url ? (
+                  <a
+                    href={l.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    class="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-700 transition hover:border-brand-500 hover:text-brand-600"
+                  >
+                    {l.label}
+                  </a>
+                ) : (
+                  <span class="rounded-md border border-dashed border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-400">
+                    {l.label} · {t.publications.soon}
+                  </span>
+                )
+              )}
+            </div>
+          )}
+        </article>
+      ))
+    }
+  </div>
+</section>

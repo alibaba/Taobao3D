@@ -1,0 +1,7 @@
+.vscode/
+build/
+HRM2Avatar/build/
+__pycache__/
+dist/
+node_modules/
+.astro/

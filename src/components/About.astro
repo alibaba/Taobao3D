@@ -1,0 +1,75 @@
+---
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+
+const base = import.meta.env.BASE_URL;
+const asset = (p: string) => `${base}/${p}`.replace(/\/+/g, '/');
+---
+
+<section id="about" class="mx-auto max-w-6xl scroll-mt-20 px-4 py-16 sm:px-6">
+  <h2 class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{t.about.heading}</h2>
+  <p class="mt-3 max-w-2xl text-slate-600">{t.about.intro}</p>
+
+  <div class="mt-12 space-y-12 lg:mt-16 lg:space-y-20">
+    {
+      t.about.areas.map((a, idx) => {
+        const flipped = idx % 2 === 1;
+        return (
+          <div class="area-row grid items-center gap-6 lg:grid-cols-2 lg:gap-12">
+            <div class:list={['overflow-hidden rounded-2xl border border-slate-200 shadow-sm', flipped && 'lg:order-2']}>
+              <img
+                src={asset(a.img)}
+                alt={a.title}
+                loading="lazy"
+                class:list={[
+                  'aspect-video w-full',
+                  a.img === 'TaoAvatar.webp'
+                    ? 'bg-slate-100 object-contain'
+                    : 'object-cover object-center',
+                ]}
+              />
+            </div>
+            <div class={flipped ? 'lg:order-1' : ''}>
+              <div class="area-head">
+                <span class="area-num" aria-hidden="true">{String(idx + 1).padStart(2, '0')}</span>
+                <h3 class="area-title text-2xl font-extrabold tracking-tight sm:text-3xl">{a.title}</h3>
+                <span class="area-accent mt-3"></span>
+              </div>
+              <p class="mt-4 leading-relaxed text-slate-600">{a.desc}</p>
+              {'points' in a && a.points && (
+                <ul class="mt-5 space-y-3 text-sm leading-relaxed text-slate-600">
+                  {a.points.map((p) => {
+                    // Bold the label before a leading colon (e.g. "运行时：…" / "Runtime: …").
+                    const ci = [p.indexOf('：'), p.indexOf(':')].filter((i) => i > -1).sort((x, y) => x - y)[0];
+                    const hasLabel = ci !== undefined && ci < 30;
+                    return (
+                      <li class="flex gap-2.5">
+                        <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-500" />
+                        <span>
+                          {hasLabel ? (
+                            <>
+                              <strong class="font-semibold text-slate-800">{p.slice(0, ci + 1)}</strong>
+                              {p.slice(ci + 1)}
+                            </>
+                          ) : (
+                            p
+                          )}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        );
+      })
+    }
+  </div>
+</section>

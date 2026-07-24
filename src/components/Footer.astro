@@ -1,0 +1,17 @@
+---
+import { useTranslations, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const year = 2026;
+---
+
+<footer class="border-t border-slate-200 bg-white">
+  <div class="mx-auto max-w-6xl px-4 py-8 text-center sm:px-6">
+    <p class="text-sm text-slate-500">© {year} {t.brand} · {t.teamName}</p>
+  </div>
+</footer>
