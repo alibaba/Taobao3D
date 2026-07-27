@@ -3,7 +3,7 @@
 </div>
 
 # Introduction
-We are the TaoTian Meta Technology Team(**淘天Meta技术团队**), dedicated to advancing and applying 3D and XR technologies. Our work spans:
+We are the TaoTian Technology Team(**淘天技术团队**), dedicated to advancing and applying 3D and XR technologies. Our work spans:
 - 3D object reconstruction
 - 3D human reconstruction, editing and animation 
 - Cross‑platform 3D rendering engines
