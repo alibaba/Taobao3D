@@ -4,7 +4,8 @@
 
 **High-quality 3D content generation for the next-generation 3D/XR shopping experience**
 
-[![Homepage](https://img.shields.io/badge/🔗_Project_Homepage-alibaba.github.io%2FTaobao3D-1a73e8?style=for-the-badge)](https://alibaba.github.io/Taobao3D/)
+
+[![Project Homepage](https://img.shields.io/badge/Project_Homepage-Taobao3D-1a73e8?style=for-the-badge)](https://alibaba.github.io/Taobao3D/)
 
 </div>
 
@@ -12,13 +13,9 @@
 
 ## Overview
 
-**Taobao3D** is a collection of open-source work on 3D / XR from the Taobao Technology Team, covering the full 3D technology stack—from **algorithm research** to **engines and applications**—and focusing on three key directions:
+**Taobao3D** is a library developed by the **Taobao3D Team**, featuring state-of-the-art algorithms for 3D reconstruction and generation. It supports the reconstruction and generation of high-fidelity 3D objects and photorealistic 3D digital humans.
 
-- **3D Native Foundation Models** — High-fidelity 3D model generation.
-- **3D Digital Human** — High-fidelity, drivable, and editable 3DGS avatars.
-- **On-Device 3D Engine** — A self-developed cross-platform 3D engine.
-
-For more details, visit 👉 **https://alibaba.github.io/Taobao3D/**
+For more details, visit 👉 [project homepage](https://alibaba.github.io/Taobao3D/) 
 
 ---
 
@@ -26,7 +23,7 @@ For more details, visit 👉 **https://alibaba.github.io/Taobao3D/**
 
 ---
 
-## 🤗 Open Source
+## 🤗 Open Source Projects
 
 ### Dens3R: A Foundation Model for 3D Geometry Prediction · <span style="color: blue;">*ICLR 2026*</span>
 
@@ -45,10 +42,18 @@ For more details, visit 👉 **https://alibaba.github.io/Taobao3D/**
   <a href="https://github.com/alibaba/Taobao3D/tree/main/HRM2Avatar"><img src="https://img.shields.io/badge/💻_Code-HRM²Avatar-24292e?style=flat-square" alt="Code"></a>
 </p>
 
+### TaoFlowForge: Progressive Native Mesh Generation via Cascaded Flow Matching · <span style="color: blue;">*Technical Report*</span>
+
+<p>
+  <a href="https://arxiv.org/pdf/2609.37139"><img src="https://img.shields.io/badge/📄_Paper-arXiv:2609.37139-b31b1b?style=flat-square" alt="Paper"></a>
+  <a href="https://alibaba.github.io/Taobao3D/blog/taoflowforge/"><img src="https://img.shields.io/badge/🌐_Project-Page-1a73e8?style=flat-square" alt="Project Page"></a>
+  <a href="https://github.com/alibaba/Taobao3D/tree/main/TaoFlowForge"><img src="https://img.shields.io/badge/💻_Code-TaoFlowForge-24292e?style=flat-square" alt="Code"></a>
+</p>
+
 ---
 
 <div align="center">
 
-**Taobao Technology Team** · [alibaba.github.io/Taobao3D](https://alibaba.github.io/Taobao3D/)
+**Taobao3D Team** · [Project Homepage](https://alibaba.github.io/Taobao3D/)
 
 </div>
