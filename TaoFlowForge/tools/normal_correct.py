@@ -1,54 +1,5 @@
 #!/usr/bin/env python3
-"""法向矫正：包围球球壳视角可见性投票 + 结构传播定向。
-
-目标：任意三角网格（面片汤 / 非流形 / 开放边界 / 多连通分量 / 重复面）的所有
-面法向一律朝外，即朝向包围球球壳的那一侧。
-
-外向性的严格判据（与输入朝向无关）——在包围球球壳上均匀取观察方向 ω，沿 ω 打一
-束正交平行光线，只取第一命中面。第一命中只由遮挡决定，不依赖任何面的朝向，故该
-判据对输入的错误 winding 完全鲁棒。被看到的面若满足 n_f·(-ω) > 0，本次露的是正面：
-
-    sview(f) = (1/D) * Σ_ω sign(-ω·n_f) * Area_vis(f, ω)
-
-sview > 0 即"从球壳望过去这个面更多地露正面" -> 朝外。关键性质：|sview| 就是单面
-光照下该面的可见发黑面积，所以最小化它 = 最小化"在三维软件里看到的黑面"，判据与
-验收指标严格同一，不存在代理目标失配。
-
-从球壳完全看不到的面（被外层包住的内层结构）sview = 0，退回半球逃逸测试兜底：
-
-    Vis±(f) = (1/pi) * ∫_{Ω±} max(±n_f·ω, 0) * 1[ray(c_f, ω) 无遮挡抵达球壳] dω
-
-设计要点：逐面证据是有噪声的采样估计，而"共享边两侧 winding 必须反向"是精确的组合
-约束。二者都不能单独用：只信投票会打碎原本正确的一致性，只信结构则无法修正整片
-翻转。故把两者写成一个全局二值能量并精确最小化：
-
-    E(y) = Σ_f  |ev_f| · [y_f ≠ vote_f]           (可见性一元项, 单位: 面积)
-         + Σ_e  w_e · [y_f ≠ y_g]                 (共享边二元项, 结构一致性)
-
-流程：
-
-    Stage 0  预处理：顶点合并 / 退化面剔除 / 重复面归并 / 包围球
-    Stage 1  证据 ev：球壳视角首命中投票（主）+ 半球逃逸投票（隐藏面兜底）
-    Stage 2  gauge fixing：沿流形边 BFS + 片级奇偶并查集，把"应反向"的约束统一
-             改写成"同标签更优"，使 E 次模
-    Stage 3  s-t 最小割精确最小化 E（scipy maximum_flow），得到逐面翻转标签
-    Stage 4  证据总量近零的连通块整体定符号：闭合块用带符号体积，否则用径向兜底
-    Stage 5  按矫正后 winding 输出每面独立 flat 法向
-
-二元项让"确定的朝向沿共享边传递"成为最优解的自然结果：无证据区域的一元项为 0，
-其标签完全由邻域证据经边传播决定。
-
-顶点坐标、面数量与面顺序均不改变，只可能翻转面内顶点次序。
-
-不可消除的残余：对每个面，"翻或不翻"至多只能消掉 max(pos, neg) 那一侧，剩下
-min(pos, neg) 必然发黑。因此正面可见率有一个纯几何的硬上限
-
-    ceil = Σ_f max(pos_f, neg_f) / Σ_f (pos_f + neg_f)
-
-在这批真实家具模型上 ceil ≈ 0.963，本算法达到 0.952。剩下约 3.7% 来自"两侧都能被
-看到"的单层面片（薄板、开口壳体的内壁、零厚度重合面）——这类几何的"朝外"没有唯一
-解，翻法向解决不了，只能靠双面材质渲染或加背面几何。
-"""
+"""Orient mesh faces outward using visibility voting and graph cuts."""
 
 from __future__ import annotations
 
@@ -65,7 +16,7 @@ import numpy as np
 
 
 def load_obj(path):
-    """读取 obj 几何。多边形面按扇形三角化。返回 (V[nv,3], F[nf,3])。"""
+    """Load and triangulate OBJ geometry."""
     verts, faces = [], []
     with open(path, "r", errors="ignore") as fh:
         for line in fh:
@@ -80,7 +31,7 @@ def load_obj(path):
 
 
 def save_obj_flat(path, V, F, N):
-    """写出 obj，每面一个独立法向（flat shading），面格式 f v//vn。"""
+    """Write an OBJ with one flat normal per face."""
     d = os.path.dirname(os.path.abspath(path))
     if d:
         os.makedirs(d, exist_ok=True)
@@ -98,7 +49,7 @@ def save_obj_flat(path, V, F, N):
         fh.write("".join(parts))
 
 
-# ---------------------------------------------------------- 几何基础
+# ---------------------------------------------------------- Geometry
 
 
 def unit(x, axis=-1):
@@ -106,14 +57,14 @@ def unit(x, axis=-1):
 
 
 def face_normals(V, F):
-    """未归一化面法向（模长 = 2*面积）与面积。"""
+    """Return unnormalized face normals and areas."""
     a, b, c = V[F[:, 0]], V[F[:, 1]], V[F[:, 2]]
     cr = np.cross(b - a, c - a)
     return cr, 0.5 * np.linalg.norm(cr, axis=1)
 
 
 def bounding_sphere(V, pad=0.02):
-    """Ritter 近似最小包围球 + 逐点扩张收敛，返回 (center, radius)。"""
+    """Approximate the bounding sphere with Ritter's algorithm."""
     p = V[np.argmin(V[:, 0])]
     q = V[np.argmax(np.sum((V - p) ** 2, axis=1))]
     r = V[np.argmax(np.sum((V - q) ** 2, axis=1))]
@@ -132,7 +83,7 @@ def bounding_sphere(V, pad=0.02):
 
 
 def tangent_frame(n):
-    """由单位法向构造正交切空间基（Duff et al. 分支自由法）。"""
+    """Build orthogonal tangent frames from unit normals."""
     sign = np.where(n[:, 2] >= 0.0, 1.0, -1.0)
     a = -1.0 / (sign + n[:, 2])
     b = n[:, 0] * n[:, 1] * a
@@ -142,7 +93,7 @@ def tangent_frame(n):
 
 
 def cosine_hemisphere(k, rng):
-    """cosine 加权半球方向的 Hammersley 低差异采样，返回 (k,3) 局部坐标。"""
+    """Sample cosine-weighted hemisphere directions."""
     i = np.arange(k, dtype=np.float64)
     u1 = (i + 0.5) / k
     bits = np.arange(k, dtype=np.uint32)
@@ -167,7 +118,7 @@ def cosine_hemisphere(k, rng):
 
 
 def fibonacci_sphere(d, rng=None):
-    """球面近均匀方向（黄金角螺旋），返回 (d,3) 单位向量。整体随机旋转以去偏。"""
+    """Sample near-uniform directions on a sphere."""
     i = np.arange(d, dtype=np.float64)
     z = 1.0 - (2.0 * i + 1.0) / d
     r = np.sqrt(np.maximum(0.0, 1.0 - z * z))
@@ -177,7 +128,7 @@ def fibonacci_sphere(d, rng=None):
     dirs = np.stack([r * np.cos(phi), r * np.sin(phi), z], 1)
     if rng is None:
         return dirs
-    q = rng.normal(size=4)                             # 均匀随机旋转（单位四元数）
+    q = rng.normal(size=4)                             # Random unit quaternion
     q /= max(np.linalg.norm(q), 1e-300)
     w, x, y, zq = q
     R = np.array([
@@ -193,29 +144,29 @@ def fibonacci_sphere(d, rng=None):
 
 @dataclass
 class Prepared:
-    wmap: np.ndarray          # 原始顶点 -> welded 顶点
-    WV: np.ndarray            # welded 顶点坐标
-    WF: np.ndarray            # welded 面索引
-    valid: np.ndarray         # 非退化面掩码
-    repr_of: np.ndarray       # 原始面 -> 代表面（重复面归并）
-    same_wind: np.ndarray     # 该面与其代表面 winding 是否同向
-    bvh_id: np.ndarray        # 原始面 -> BVH 图元下标（-1 表示不在 BVH 中）
-    prim2face: np.ndarray     # BVH 图元下标 -> 原始面（代表面）
+    wmap: np.ndarray          # Original-to-welded vertex map
+    WV: np.ndarray            # Welded vertices
+    WF: np.ndarray            # Welded faces
+    valid: np.ndarray         # Non-degenerate face mask
+    repr_of: np.ndarray       # Duplicate representative per face
+    same_wind: np.ndarray     # Winding relative to the representative
+    bvh_id: np.ndarray        # Face-to-BVH primitive map
+    prim2face: np.ndarray     # BVH primitive-to-face map
     center: np.ndarray
     radius: float
     diag: float
-    n_unit: np.ndarray        # 输入 winding 下的单位面法向
+    n_unit: np.ndarray        # Input face normals
     area: np.ndarray
-    fc: np.ndarray            # 面重心
+    fc: np.ndarray            # Face centroids
     stats: dict = field(default_factory=dict)
 
 
 def prepare(V, F, weld_tol_rel=1e-6):
-    """Stage 0。仅为内部计算服务，不改动输出拓扑。"""
+    """Prepare welded geometry and face metadata."""
     center, radius = bounding_sphere(V)
     diag = float(np.linalg.norm(V.max(0) - V.min(0)))
 
-    # 按容差量化合并重合顶点（输入常来自量化网格，重合点未必同索引）
+    # Weld coincident vertices by quantized position.
     tol = max(diag * weld_tol_rel, 1e-12)
     key = np.round((V - V.min(0)) / tol).astype(np.int64)
     _, wfirst, wmap = np.unique(key, axis=0, return_index=True, return_inverse=True)
@@ -226,12 +177,12 @@ def prepare(V, F, weld_tol_rel=1e-6):
     valid = area > 1e-12 * max(diag, 1e-12) ** 2
     valid &= (WF[:, 0] != WF[:, 1]) & (WF[:, 1] != WF[:, 2]) & (WF[:, 2] != WF[:, 0])
 
-    # 重复面归并：同一 welded 顶点三元组视为同一片几何（零厚度双层会互相遮挡）
+    # Merge faces sharing the same welded vertex triplet.
     _, first, inv = np.unique(np.sort(WF, axis=1), axis=0,
                               return_index=True, return_inverse=True)
     repr_of = first[np.asarray(inv).ravel()]
 
-    def cyc(x):                                   # 旋转到最小元素开头，比较循环序
+    def cyc(x):                                   # Canonical cyclic order
         r = np.argmin(x, axis=1)
         return np.stack([x[np.arange(len(x)), (r + k) % 3] for k in range(3)], 1)
 
@@ -240,8 +191,8 @@ def prepare(V, F, weld_tol_rel=1e-6):
     in_bvh = valid & (repr_of == np.arange(len(F)))
     bvh_id = np.full(len(F), -1, np.int64)
     bvh_id[in_bvh] = np.arange(int(in_bvh.sum()))
-    prim2face = np.nonzero(in_bvh)[0]              # BVH 图元顺序 = in_bvh 的面序
-    bvh_id = bvh_id[repr_of]                      # 重复面共享代表面的图元下标
+    prim2face = np.nonzero(in_bvh)[0]              # BVH primitive order
+    bvh_id = bvh_id[repr_of]                      # Reuse representative primitives
     bvh_id[~valid] = -1
 
     stats = dict(
@@ -259,7 +210,7 @@ def prepare(V, F, weld_tol_rel=1e-6):
 
 
 class RayEngine:
-    """embree(open3d) 优先，缺失时回退 trimesh 纯 numpy 求交。"""
+    """Use Open3D ray casting with a trimesh fallback."""
 
     def __init__(self, V, F):
         try:
@@ -279,7 +230,7 @@ class RayEngine:
             self.backend = "trimesh"
 
     def first_hit(self, origins, dirs):
-        """返回 (t_hit, prim_id)；未命中为 (inf, -1)。"""
+        """Return hit distances and primitive IDs."""
         if self.backend.startswith("open3d"):
             rays = np.concatenate(
                 [np.asarray(origins, np.float32), np.asarray(dirs, np.float32)], 1
@@ -301,11 +252,7 @@ class RayEngine:
 
 
 def visibility_vote(prep, engine, n_rays=32, chunk=400_000, seed=0):
-    """Stage 1：逐面双向球壳可见性投票，返回 (Vis+, Vis-)，取值 [0,1]。
-
-    所有几何都在包围球内，故"无命中"等价于"无遮挡抵达球壳"。
-    起点沿射线方向偏移 eps，使自身三角面落在 t<0 一侧，天然免自交。
-    """
+    """Estimate bidirectional per-face visibility."""
     rng = np.random.default_rng(seed)
     nf = len(prep.n_unit)
     vis = np.zeros((nf, 2))
@@ -327,36 +274,24 @@ def visibility_vote(prep, engine, n_rays=32, chunk=400_000, seed=0):
         t, pid = engine.first_hit(org, dirs)
         self_id = np.repeat(prep.bvh_id[fid], per_face)
         escaped = ((~np.isfinite(t)) | (pid == self_id)).reshape(len(fid), 2, n_rays)
-        # cosine 采样下方向的算术平均即 cosine 加权可见度的无偏估计
+        # Average cosine samples to estimate visibility.
         vis[fid, 0] = escaped[:, 0].mean(axis=1)
         vis[fid, 1] = escaped[:, 1].mean(axis=1)
     return vis[:, 0], vis[:, 1]
 
 
 def shell_view_vote(prep, engine, n_views=64, res=128, seed=0, chunk=800_000):
-    """Stage 1 主证据：球壳视角首命中投票，返回 (sview, cover)，单位均为面积。
-
-    对每个方向 ω（球面近均匀），从包围球外沿 ω 打一束正交平行光线（覆盖球的截面
-    圆），只取第一命中面。每条光线代表固定的世界面积 px，故累加 px 得到的就是该面
-    在这一视角下的可见投影面积。第一命中完全由遮挡决定，与任何面的朝向无关。
-
-        sview(f) = (1/D) Σ_ω sign(-ω·n_f) · Area_vis(f, ω)     符号化可见投影面积
-        cover(f) = (1/D) Σ_ω              Area_vis(f, ω)       总可见投影面积
-
-    sview > 0 -> 当前 winding 下这个面从球壳看更多地露正面，已朝外。
-    |sview| 就是"翻错时能看到的黑面面积"，最小割最小化的目标因此与验收指标同一。
-    cover = 0 的面从球壳完全看不到（内层结构），交给半球逃逸投票兜底。
-    """
+    """Estimate signed visible area from shell viewpoints."""
     rng = np.random.default_rng(seed + 12345)
     nf = len(prep.n_unit)
     pos = np.zeros(nf)
     neg = np.zeros(nf)
     R = prep.radius
-    px = (2.0 * R / res) ** 2                       # 每条光线代表的世界面积
+    px = (2.0 * R / res) ** 2                       # World area per ray
     om_all = fibonacci_sphere(n_views, rng)
     t_ax, s_ax = tangent_frame(om_all)
 
-    g = (np.arange(res) + 0.5) / res * 2.0 - 1.0    # 截面网格（含随机抖动去锯齿）
+    g = (np.arange(res) + 0.5) / res * 2.0 - 1.0    # Jittered projection grid
     gu, gv = np.meshgrid(g, g, indexing="ij")
     gu, gv = gu.reshape(-1), gv.reshape(-1)
     step = max(1, chunk // (res * res))
@@ -385,37 +320,29 @@ def shell_view_vote(prep, engine, n_views=64, res=128, seed=0, chunk=800_000):
     return (pos - neg) / n_views, (pos + neg) / n_views
 
 
-# ---------------------------------------------------------- 邻接图
+# ---------------------------------------------------------- Adjacency graph
 
 
 @dataclass
 class FaceGraph:
-    dst: np.ndarray       # CSR 邻居
-    off: np.ndarray       # CSR 偏移
-    incompat: np.ndarray  # True = 两面当前 winding 不相容（接受传播需翻转）
-    strong: np.ndarray    # True = 流形边（精确约束）；False = 非流形弱边
-    elen: np.ndarray      # 共享边长度（图割二元项权重用）
+    dst: np.ndarray       # CSR neighbors
+    off: np.ndarray       # CSR offsets
+    incompat: np.ndarray  # Current winding mismatch
+    strong: np.ndarray    # Manifold-edge constraint
+    elen: np.ndarray      # Shared-edge length
     bd_per_face: np.ndarray
     nm_per_face: np.ndarray
     stats: dict
 
 
 def build_face_graph(prep, F):
-    """构造面邻接图。
-
-    相容性判据（纯组合，不依赖几何）：两面共享一条边时，若各自的有向半边方向
-    相反则 winding 相容。
-
-      · 恰好 2 面的边（流形边）  -> 强约束
-      · >=3 面的边（非流形边）   -> 按绕边方位角排序，只连接环状相邻的楔形对，弱约束
-      · 1 面的边（边界边）       -> 无约束
-    """
+    """Build manifold and non-manifold face adjacency."""
     WF = prep.WF
     keep = np.nonzero(prep.valid & (prep.repr_of == np.arange(len(F))))[0]
     he_f = np.repeat(keep, 3)
     he_a = WF[keep][:, [0, 1, 2]].reshape(-1)
     he_b = WF[keep][:, [1, 2, 0]].reshape(-1)
-    he_o = WF[keep][:, [2, 0, 1]].reshape(-1)          # 对顶点，供绕边排序
+    he_o = WF[keep][:, [2, 0, 1]].reshape(-1)          # Opposite vertices
     lo, hi = np.minimum(he_a, he_b), np.maximum(he_a, he_b)
     fwd = he_a < he_b
     order = np.argsort(lo * (len(prep.WV) + 1) + hi, kind="stable")
@@ -428,15 +355,15 @@ def build_face_graph(prep, F):
     counts = np.diff(np.concatenate([starts, [len(ekey_s)]]))
     nm_groups = np.nonzero(counts >= 3)[0]
 
-    # 流形边：全向量化
+    # Vectorized manifold edges
     mf = np.nonzero(counts == 2)[0]
     i0, i1 = starts[mf], starts[mf] + 1
     P = [np.stack([he_f_s[i0], he_f_s[i1]], 1)]
-    IC = [fwd_s[i0] == fwd_s[i1]]                      # 同向 -> 不相容
+    IC = [fwd_s[i0] == fwd_s[i1]]                      # Same direction is incompatible
     ST = [np.ones(len(mf), bool)]
     EL = [elen_s[i0]]
 
-    # 非流形边：绕边方位角排序后连接环状相邻对
+    # Connect adjacent wedges around non-manifold edges.
     for gi in nm_groups:
         b, cnt = int(starts[gi]), int(counts[gi])
         sl = slice(b, b + cnt)
@@ -498,7 +425,7 @@ def build_face_graph(prep, F):
 
 
 class ParityDSU:
-    """带奇偶标记的并查集：维护每个元素相对其根的相对符号。"""
+    """Track relative signs with parity union-find."""
 
     def __init__(self, n):
         self.p = list(range(n))
@@ -517,7 +444,7 @@ class ParityDSU:
         return x, acc
 
     def union(self, a, b, rel):
-        """要求 sign(a) xor sign(b) == rel。返回是否与已有约束一致。"""
+        """Merge a relative-sign constraint."""
         ra, pa = self.find(a)
         rb, pb = self.find(b)
         if ra == rb:
@@ -528,23 +455,13 @@ class ParityDSU:
 
 
 def gauge_fix(prep, g):
-    """Stage 2：gauge fixing——把"共享边两侧应反向"改写成"两端同标签更优"。
-
-    2a  沿流形边（精确约束）做 BFS 森林，逐面赋 flip0，使每个"片"内部 winding 一致。
-    2b  片之间只由非流形弱边相连；按面积加权多数定出每对片的相对符号，再用最大
-        生成森林（奇偶并查集，重边优先）统一各片的 gauge。
-
-    完成后除极少数"受挫边"（输入 winding 自相矛盾处，必须丢弃）外，所有边的相容
-    条件都变成 y_f == y_g，Stage 3 的能量因此次模，可由最小割精确最小化。
-
-    返回 (flip0, pid, npatch, n_frustrated)。
-    """
+    """Convert winding constraints into graph-cut-compatible labels."""
     nf = len(prep.valid)
     flip0 = np.zeros(nf, bool)
     pid = np.full(nf, -1, np.int64)
     dst, off, ic, st = g.dst, g.off, g.incompat, g.strong
 
-    # 2a 面级：仅沿流形边
+    # Propagate across manifold edges.
     npatch = 0
     for s0 in np.nonzero(prep.valid & (prep.repr_of == np.arange(nf)))[0]:
         if pid[s0] != -1:
@@ -555,7 +472,7 @@ def gauge_fix(prep, g):
             f = dq.popleft()
             for k in range(off[f], off[f + 1]):
                 if not st[k]:
-                    continue                       # 弱边不参与面级传播
+                    continue                       # Skip weak edges
                 h = int(dst[k])
                 if pid[h] != -1 or not prep.valid[h]:
                     continue
@@ -564,7 +481,7 @@ def gauge_fix(prep, g):
                 dq.append(h)
         npatch += 1
 
-    # 2b 片级：非流形弱边给出片对相对符号（面积加权多数），最大生成森林统一 gauge
+    # Reconcile patches across weak non-manifold edges.
     src_e = np.repeat(np.arange(nf), np.diff(off))
     wk = np.nonzero((~st) & (src_e < dst))[0]
     if len(wk) and npatch > 1:
@@ -596,45 +513,16 @@ def gauge_fix(prep, g):
 
 
 def mincut_flip(prep, g, flip0, src_e, compat, ev, beta=0.2, weak_ratio=0.3):
-    """Stage 3：最小割精确最小化
-
-        E(y) = Σ_f |ev_f|·[y_f ≠ vote_f] + Σ_e w_e·[y_f ≠ y_g]
-
-    gauge 之后所有保留边都是"同标签更优"（Ising 铁磁项），能量次模，s-t 最小割
-    给出全局最优解。相比"整片一票"，它让强证据区域（如外壳大面板）能带着邻域一起
-    翻转，同时无证据区域（一元项为 0）的标签完全由邻域经边传播决定。
-
-    一元项 ev_f 是带符号的可见投影面积（Stage 1），量纲为面积，其绝对值就是判错时
-    在单面光照下暴露的黑面面积——能量的一元部分因此**就是**验收指标本身。
-
-    边权 w_e = beta·L_e·ℓ，ℓ = ΣA/ΣL（网格自身的"面积/周长"标度，使权重与整体尺度
-    和网格密度无关，beta 因此是无量纲松紧旋钮）。非流形弱边按 weak_ratio 折减。
-
-    beta 定档（9 个真实家具模型实测，均值）：
-
-        beta   正面可见率   流形边相容率
-        0.0     0.9626      0.8758      纯投票，等于逐面独立最优
-        0.1     0.9558      0.9870
-        0.2     0.9516      0.9914      <- 默认：相容率首次超过输入基线
-        0.5     0.9348      0.9949
-        1.0     0.9180      0.9959
-        输入    0.8441      0.9903
-
-    "逐面独立最优上限" = 0.9629：每个面单独取 max(pos,neg) 时的正面可见率。beta=0.2
-    离这个硬上限只差 1.1pp，说明结构项几乎没有付出代价。剩下的 3.7% 是几何决定的
-    不可消除量（见模块 docstring 末尾说明），不是求解质量问题。
-
-    返回 (flip, n_cut_flip)。
-    """
+    """Solve face flips by minimizing the graph-cut energy."""
     from scipy.sparse import coo_matrix
     from scipy.sparse.csgraph import breadth_first_order, maximum_flow
 
     nf = len(prep.valid)
     A = prep.area
-    u = ev * np.where(flip0, -1.0, 1.0)             # gauge 下的外向性得分
+    u = ev * np.where(flip0, -1.0, 1.0)             # Outward score in the fixed gauge
     unary = np.abs(u) * prep.valid
-    cap_s = np.where(u > 0, unary, 0.0)             # 偏好 y=0（保持）
-    cap_t = np.where(u < 0, unary, 0.0)             # 偏好 y=1（翻转）
+    cap_s = np.where(u > 0, unary, 0.0)             # Prefer keeping
+    cap_t = np.where(u < 0, unary, 0.0)             # Prefer flipping
 
     keep = (src_e < g.dst) & compat & prep.valid[src_e] & prep.valid[g.dst]
     i, j = src_e[keep], g.dst[keep]
@@ -643,8 +531,8 @@ def mincut_flip(prep, g, flip0, src_e, compat, ev, beta=0.2, weak_ratio=0.3):
     w = np.where(g.strong[keep], beta, beta * weak_ratio) * g.elen[keep] * ell
 
     tot = max(cap_s.sum(), cap_t.sum(), 1e-300)
-    sc = 1.0e9 / tot                                # 最大流 <= 1e9，稳在 int32 内
-    cs = np.rint(cap_s * sc) + 1.0                  # +1：零证据面默认留在源侧
+    sc = 1.0e9 / tot                                # Keep flow within int32
+    cs = np.rint(cap_s * sc) + 1.0                  # Keep zero-evidence faces
     ct = np.rint(cap_t * sc)
     wq = np.clip(np.rint(w * sc), 0.0, 2.0 ** 30)
 
@@ -663,7 +551,7 @@ def mincut_flip(prep, g, flip0, src_e, compat, ev, beta=0.2, weak_ratio=0.3):
     reach = np.zeros(nf + 2, bool)
     reach[breadth_first_order(R, S, directed=True, return_predecessors=False)] = True
 
-    y = ~reach[:nf]                                 # 未被源侧到达 -> 割到汇侧 -> 翻转
+    y = ~reach[:nf]                                 # Sink-side faces flip
     y &= prep.valid
     return flip0 ^ y, int(y.sum())
 
@@ -672,14 +560,7 @@ def mincut_flip(prep, g, flip0, src_e, compat, ev, beta=0.2, weak_ratio=0.3):
 
 
 def fix_blind_components(prep, V, F, g, src_e, flip, ev, conf_tau=0.03):
-    """Stage 4：证据总量近零的连通块整体定符号。
-
-    被外层完全包住的内层结构，从球壳看不到、半球射线也逃不出去，一元项为 0，最小割
-    无从判断（只保证块内一致）。对这类块整体决定一次符号：
-
-      · 块闭合（无边界边、无非流形边）-> 带符号体积；外向定向的闭合面必围出正体积
-      · 否则 -> 相对块自身重心的径向判据兜底
-    """
+    """Orient components with insufficient visibility evidence."""
     from scipy.sparse import coo_matrix
     from scipy.sparse.csgraph import connected_components
 
@@ -716,16 +597,7 @@ def fix_blind_components(prep, V, F, g, src_e, flip, ev, conf_tau=0.03):
 
 
 def add_backfaces(V, F, N, back_area, diag, eps_rel=1e-4):
-    """给"矫正后仍会露出背面"的面补一层反向几何，追加在表尾。
-
-    这是消除残余黑面的唯一手段：单层面片的两侧都能被看到时，翻法向只能挑一侧，
-    另一侧必然发黑（见模块 docstring 的硬上限）。补一张反向的面就把那一侧也覆盖了。
-
-    副本沿 -n 平移 eps·diag，于是从背面观察时副本总位于原面之前，渲染器无论开不开
-    背面剔除都不会 z-fighting，也不会出现"一半亮一半黑"的闪烁。
-
-    返回 (V2, F2, N2, n_added)。原有顶点坐标、面顺序完全不变。
-    """
+    """Add offset reverse faces for visible back sides."""
     idx = np.nonzero(back_area > 0)[0]
     if len(idx) == 0:
         return V, F, N, 0
@@ -737,12 +609,12 @@ def add_backfaces(V, F, N, back_area, diag, eps_rel=1e-4):
             len(idx))
 
 
-# ---------------------------------------------------------- 主流程
+# ---------------------------------------------------------- Main pipeline
 
 
 def correct_normals(V, F, n_rays=32, n_views=64, vres=128, conf_tau=0.03, beta=0.2,
                     seed=0, verbose=True):
-    """返回 (F_out, N_flat, info, extra)。V、面数、面序不变，只可能翻转 winding。"""
+    """Return oriented faces, flat normals, metrics, and debug data."""
     t = {}
     t0 = time.time()
     prep, in_bvh = prepare(V, F)
@@ -753,7 +625,7 @@ def correct_normals(V, F, n_rays=32, n_views=64, vres=128, conf_tau=0.03, beta=0
     sview, cover = shell_view_vote(prep, engine, n_views=n_views, res=vres, seed=seed)
     vis_pos, vis_neg = visibility_vote(prep, engine, n_rays=n_rays, seed=seed)
     s = vis_pos - vis_neg
-    # 主证据 = 球壳视角带符号可见面积；球壳完全看不到的面退回半球逃逸证据
+    # Fall back to hemisphere evidence for shell-occluded faces.
     ev = np.where(cover > 0, sview, prep.area * s)
     t["vote"] = time.time() - t0
 
@@ -770,17 +642,17 @@ def correct_normals(V, F, n_rays=32, n_views=64, vres=128, conf_tau=0.03, beta=0
     flip, bstat = fix_blind_components(prep, V, F, g, src_e, flip, ev, conf_tau)
     t["cut"] = time.time() - t0
 
-    # 重复面：与代表面取得同一最终朝向（否则共享三边会被判为"应互为反向"）
+    # Match duplicate faces to their representatives.
     flip = np.where(prep.same_wind, flip[prep.repr_of], ~flip[prep.repr_of])
-    flip[~prep.valid] = False                     # 退化面法向无定义，保持原 winding
+    flip[~prep.valid] = False                     # Keep degenerate faces unchanged
 
     F_out = F.copy()
     F_out[flip] = F_out[flip][:, [0, 2, 1]]
     N = np.where(flip[:, None], -prep.n_unit, prep.n_unit)
     degen = ~prep.valid
-    N[degen] = unit(prep.fc - prep.center)[degen]  # 退化面用径向占位，避免 NaN
+    N[degen] = unit(prep.fc - prep.center)[degen]  # Avoid NaNs on degenerate faces
 
-    # ---- 指标：外向率只在「可见性有实证」的面上统计（全遮挡面 s≈0，统计无意义）
+    # Compute visibility metrics on supported faces.
     sgn = np.where(flip, -1.0, 1.0)
     hc = prep.valid & (np.abs(s) >= conf_tau)
     hw = prep.area * hc
@@ -793,11 +665,11 @@ def correct_normals(V, F, n_rays=32, n_views=64, vres=128, conf_tau=0.03, beta=0
     else:
         coh_b = coh_a = float("nan")
 
-    # 正面可见率 = 1 - 单面光照下的发黑比例，直接来自 64 视角的可见面积统计
+    # Measure visible front- and back-facing area.
     cvt = max(float(cover.sum()), 1e-300)
-    pos_v = 0.5 * (cover + sview)                  # 当前 winding 下露正面的可见面积
+    pos_v = 0.5 * (cover + sview)
     neg_v = 0.5 * (cover - sview)
-    back_area = np.where(flip, pos_v, neg_v)       # 矫正后仍会露出的背面可见面积
+    back_area = np.where(flip, pos_v, neg_v)
     fv_b = float(pos_v.sum()) / cvt
     fv_a = 1.0 - float(back_area.sum()) / cvt
     fv_ceil = 1.0 - float(np.minimum(pos_v, neg_v).sum()) / cvt
@@ -817,20 +689,20 @@ def correct_normals(V, F, n_rays=32, n_views=64, vres=128, conf_tau=0.03, beta=0
     )
     if verbose:
         print(f"  [prep ] V={info['n_vert']}(welded {info['n_vert_welded']}) "
-              f"F={info['n_face']} 退化={info['n_degenerate']} 重复={info['n_duplicate']}")
-        print(f"  [graph] 边界边={info['n_boundary_edge']} 流形边={info['n_manifold_edge']} "
-              f"非流形边={info['n_nonmanifold_edge']} 片={npatch} 连通块={bstat['n_comp']} "
-              f"受挫边={n_frust}")
-        print(f"  [vote ] {engine.backend} 视角={n_views}x{vres}^2 K={n_rays}/侧 "
-              f"球壳不可见面积占比={info['hidden_ratio']:.3f}")
-        print(f"  [cut  ] 图割翻转={n_cut} | 盲块={bstat['n_blind_comp']}"
-              f"(体积{bstat['n_blind_vol']}/径向{bstat['n_blind_radial']})"
-              f" 整块翻转={bstat['n_blind_flipped']} | 总翻转面={info['n_flip']}")
-        print(f"  [metric] 正面可见率 {coh_or(fv_b)} -> {coh_or(fv_a)} "
-              f"(几何硬上限 {coh_or(fv_ceil)}) | "
-              f"外向率(有实证面) {coh_or(info['outward_before'])} -> "
+              f"F={info['n_face']} degenerate={info['n_degenerate']} duplicate={info['n_duplicate']}")
+        print(f"  [graph] boundary={info['n_boundary_edge']} manifold={info['n_manifold_edge']} "
+              f"nonmanifold={info['n_nonmanifold_edge']} patches={npatch} components={bstat['n_comp']} "
+              f"frustrated={n_frust}")
+        print(f"  [vote ] {engine.backend} views={n_views}x{vres}^2 K={n_rays}/side "
+              f"hidden_area={info['hidden_ratio']:.3f}")
+        print(f"  [cut  ] cut_flips={n_cut} | blind={bstat['n_blind_comp']}"
+              f"(volume={bstat['n_blind_vol']}/radial={bstat['n_blind_radial']})"
+              f" component_flips={bstat['n_blind_flipped']} | total_flips={info['n_flip']}")
+        print(f"  [metric] front visibility {coh_or(fv_b)} -> {coh_or(fv_a)} "
+              f"(ceiling {coh_or(fv_ceil)}) | "
+              f"supported outwardness {coh_or(info['outward_before'])} -> "
               f"{coh_or(info['outward_after'])} | "
-              f"流形边相容率 {coh_or(coh_b)} -> {coh_or(coh_a)}")
+              f"manifold coherence {coh_or(coh_b)} -> {coh_or(coh_a)}")
         print("  [time ] " + "  ".join(f"{k} {v:.2f}s" for k, v in t.items()))
     extra = dict(vis_pos=vis_pos, vis_neg=vis_neg, sview=sview, cover=cover,
                  back_area=back_area, diag=prep.diag, flip=flip, patch=pid,
@@ -843,20 +715,21 @@ def coh_or(x):
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="包围球球壳视角可见性投票 + 图割定向的法向矫正")
-    ap.add_argument("input", help="obj 文件或目录")
-    ap.add_argument("-o", "--output", default="out", help="输出文件或目录")
-    ap.add_argument("-d", "--views", type=int, default=64, help="球壳观察方向数")
-    ap.add_argument("--vres", type=int, default=128, help="每个方向的平行光线网格边长")
-    ap.add_argument("-k", "--rays", type=int, default=32, help="每侧半球射线数（隐藏面兜底）")
-    ap.add_argument("--beta", type=float, default=0.2, help="结构一致性权重（越大越保守）")
-    ap.add_argument("--conf-tau", type=float, default=0.03, help="盲块判定阈值")
+    ap = argparse.ArgumentParser(
+        description="Orient mesh normals using visibility voting and graph cuts.")
+    ap.add_argument("input", help="Input OBJ file or directory")
+    ap.add_argument("-o", "--output", default="out", help="Output file or directory")
+    ap.add_argument("-d", "--views", type=int, default=64, help="Number of shell views")
+    ap.add_argument("--vres", type=int, default=128, help="Ray-grid resolution per view")
+    ap.add_argument("-k", "--rays", type=int, default=32, help="Hemisphere rays per side")
+    ap.add_argument("--beta", type=float, default=0.2, help="Structural consistency weight")
+    ap.add_argument("--conf-tau", type=float, default=0.03, help="Blind-component threshold")
     ap.add_argument("--backfaces", action="store_true",
-                    help="给仍会露背面的面补一层反向几何，任何渲染器都不再发黑")
+                    help="Add reverse geometry for visible back sides")
     ap.add_argument("--bf-eps", type=float, default=1e-4,
-                    help="背面副本的内偏移量（相对包围盒对角线）")
-    ap.add_argument("--seed", type=int, default=0, help="采样随机种子")
-    ap.add_argument("--dump", action="store_true", help="另存逐面中间量 npz")
+                    help="Back-face offset relative to the bounding-box diagonal")
+    ap.add_argument("--seed", type=int, default=0, help="Sampling seed")
+    ap.add_argument("--dump", action="store_true", help="Save per-face debug data as NPZ")
     a = ap.parse_args(argv)
 
     if os.path.isdir(a.input):
@@ -877,7 +750,7 @@ def main(argv=None):
         if a.backfaces:
             Vo, F2, N, nadd = add_backfaces(V, F2, N, extra["back_area"],
                                             extra["diag"], a.bf_eps)
-            print(f"  [bf   ] 补背面 {nadd} 面 (+{nadd / max(len(F), 1) * 100:.1f}%)")
+            print(f"  [bf   ] added {nadd} back faces (+{nadd / max(len(F), 1) * 100:.1f}%)")
         save_obj_flat(dstp, Vo, F2, N)
         if a.dump:
             np.savez_compressed(os.path.splitext(dstp)[0] + "_dbg.npz", **extra)

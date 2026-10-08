@@ -47,8 +47,6 @@ Some CUDA packages depend on the local GPU architecture and CUDA runtime. If a p
 
 Prepare the five released checkpoint files. Paths may be changed freely as long as the matching CLI arguments are provided.
 
-Please download the checkpoint from [modelscope](https://www.modelscope.cn/models/Taobao3D/TaoFlowForge/files)
-
 ```text
 weights/
 ├── stage0.pt
@@ -147,7 +145,7 @@ config = InferenceConfig(
 )
 
 with TaoFlowForgePipeline.from_config(config) as pipeline:
-    result = pipeline.run("examples/example.ppm")
+    result = pipeline.run("examples/bookshelf_desk.png")
 
 print(result.glb_path)
 ```

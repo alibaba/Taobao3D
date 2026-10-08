@@ -16,6 +16,16 @@ from taoflowforge import InferenceConfig, Stage0Config, Stage1Config, Stage2Conf
 from taoflowforge.artifacts import load_stage_artifact
 from taoflowforge.pipeline import TaoFlowForgePipeline
 
+_EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
+_EXAMPLE_IMAGES = [
+    str(_EXAMPLES_DIR / "bookshelf_desk.png"),
+    str(_EXAMPLES_DIR / "easel.png"),
+    str(_EXAMPLES_DIR / "mannequin.png"),
+    str(_EXAMPLES_DIR / "person01.png"),
+    str(_EXAMPLES_DIR / "person02.png"),
+    str(_EXAMPLES_DIR / "person03.png"),
+]
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Launch the TaoFlowForge Gradio demo")
@@ -501,6 +511,12 @@ def build_app(pipeline: TaoFlowForgePipeline) -> gr.Blocks:
                     variant="primary",
                     size="lg",
                     elem_id="generate-button",
+                )
+                gr.Examples(
+                    examples=_EXAMPLE_IMAGES,
+                    inputs=image,
+                    label="Example inputs",
+                    examples_per_page=7,
                 )
                 gr.Markdown(
                     "**Three-stage workflow**  \n"

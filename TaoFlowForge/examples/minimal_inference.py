@@ -20,6 +20,6 @@ config = InferenceConfig(
 )
 
 with TaoFlowForgePipeline.from_config(config) as pipeline:
-    result = pipeline.run("examples/example.ppm")
+    result = pipeline.run("examples/bookshelf_desk.png")
 
 print(result.glb_path)
