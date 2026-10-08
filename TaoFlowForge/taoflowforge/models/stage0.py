@@ -8,7 +8,7 @@ import torch
 from torch import nn
 
 from ..random import deterministic_fps
-from .dino import DinoConditioner
+from .dino import DinoConditioner, load_pretrained_dino_state_dict
 from .flow import EulerFlowSampler
 from .ss_flow import SparseStructureFlowModel
 from .ss_vae import SparseStructureDecoder
@@ -280,13 +280,27 @@ def _load_component(
 
 def load_stage0_model(
     checkpoint_path: str | Path,
-    vae_checkpoint_path: str | Path,
-    latent_norm_path: str | Path,
     device: str | torch.device = "cpu",
     *,
     use_ema: bool = True,
+    dino_checkpoint_path: str | Path | None = None,
 ) -> Stage0Model:
-    """Load every Stage 0 inference tensor and reject silent mismatches."""
+    """Load every Stage 0 inference tensor from a single merged checkpoint.
+
+    Expected checkpoint layout::
+
+        {
+            "model_state_dict": {
+                "dino_encoder.*": ...,   # optional when *dino_checkpoint_path* given
+                "denoiser.*": ...,
+                "vae.decoder.*": ...,
+                "vae.encoder.*": ...,    # silently ignored
+            },
+            "ema_state_dict": {...},     # optional; denoiser EMA weights
+            "channel_mean": Tensor,      # latent-space per-channel mean (8,)
+            "channel_std": Tensor,       # latent-space per-channel std  (8,)
+        }
+    """
     checkpoint = torch.load(
         checkpoint_path,
         map_location="cpu",
@@ -314,9 +328,10 @@ def load_stage0_model(
             )
         source.update(ema)
 
-    dino_state = {}
-    denoiser_state = {}
-    unexpected = []
+    dino_state: dict[str, torch.Tensor] = {}
+    denoiser_state: dict[str, torch.Tensor] = {}
+    decoder_state: dict[str, torch.Tensor] = {}
+    unexpected: list[str] = []
     for key, value in source.items():
         if key.startswith(_DINO_SOURCE):
             target = _map_dino_key(key)
@@ -328,6 +343,11 @@ def load_stage0_model(
             if target in denoiser_state:
                 raise RuntimeError(f"Duplicate Stage 0 denoiser tensor: {target}")
             denoiser_state[target] = value
+        elif key.startswith(_VAE_DECODER_SOURCE):
+            target = key[len(_VAE_DECODER_SOURCE) :]
+            decoder_state[target] = value
+        elif key.startswith(_VAE_ENCODER_SOURCE):
+            pass  # encoder weights are not needed for inference
         else:
             unexpected.append(key)
     if unexpected:
@@ -336,40 +356,21 @@ def load_stage0_model(
             + ", ".join(sorted(unexpected)[:20])
         )
 
-    vae_checkpoint = torch.load(
-        vae_checkpoint_path,
-        map_location="cpu",
-        mmap=True,
-        weights_only=True,
-    )
-    vae_source = vae_checkpoint.get("model_state_dict", vae_checkpoint)
-    decoder_state = {
-        _strip_compile_prefix(key)[len(_VAE_DECODER_SOURCE) :]: value
-        for key, value in vae_source.items()
-        if _strip_compile_prefix(key).startswith(_VAE_DECODER_SOURCE)
-    }
-    invalid_vae = [
-        key
-        for key in vae_source
-        if not _strip_compile_prefix(key).startswith(
-            (_VAE_ENCODER_SOURCE, _VAE_DECODER_SOURCE)
-        )
-    ]
-    if invalid_vae:
-        raise RuntimeError(
-            "Stage 0 VAE checkpoint has unexpected tensors: "
-            + ", ".join(sorted(invalid_vae)[:20])
-        )
+    if not dino_state:
+        if dino_checkpoint_path is None:
+            raise RuntimeError(
+                "Stage 0 checkpoint contains no DINO weights; "
+                "pass --dino-checkpoint to supply a HuggingFace DINOv3 directory"
+            )
+        dino_state = load_pretrained_dino_state_dict(dino_checkpoint_path)
 
-    latent_norm = torch.load(
-        latent_norm_path,
-        map_location="cpu",
-        weights_only=True,
-    )
-    if "channel_mean" not in latent_norm or "channel_std" not in latent_norm:
-        raise RuntimeError("Stage 0 latent normalization statistics are incomplete")
-    mean = latent_norm["channel_mean"].float().reshape(-1)
-    std = latent_norm["channel_std"].float().reshape(-1)
+    if not decoder_state:
+        raise RuntimeError("Stage 0 checkpoint is missing VAE decoder weights (vae.decoder.*)")
+
+    if "channel_mean" not in checkpoint or "channel_std" not in checkpoint:
+        raise RuntimeError("Stage 0 checkpoint is missing latent normalization statistics (channel_mean / channel_std)")
+    mean = checkpoint["channel_mean"].float().reshape(-1)
+    std = checkpoint["channel_std"].float().reshape(-1)
     if mean.numel() != Stage0Model.latent_channels:
         raise RuntimeError(f"Expected 8 latent means, got {mean.numel()}")
     if std.numel() != Stage0Model.latent_channels or torch.any(std <= 0):

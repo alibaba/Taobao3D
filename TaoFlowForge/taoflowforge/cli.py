@@ -16,13 +16,15 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--image", type=Path, required=True, help="Input RGB/RGBA image")
     parser.add_argument("--device", default=None, help="Torch device, e.g. cuda:0 or cpu")
     parser.add_argument("--image-size", type=int, default=1024)
+    parser.add_argument(
+        "--dino-checkpoint", type=Path, default=None,
+        help="HuggingFace DINOv3 pretrained directory (required when stage checkpoints lack DINO weights)",
+    )
     parser.add_argument("--no-progress", action="store_true")
 
 
 def _add_stage0_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--stage0-checkpoint", type=Path, required=True)
-    parser.add_argument("--stage0-vae-checkpoint", type=Path, required=True)
-    parser.add_argument("--stage0-latent-norm", type=Path, required=True)
     parser.add_argument("--stage0-num-steps", type=int, default=50)
     parser.add_argument("--stage0-cfg-scale", type=float, default=7.5)
     parser.add_argument("--stage0-t-shift", type=float, default=2.718)
@@ -51,8 +53,6 @@ def _add_stage2_arguments(parser: argparse.ArgumentParser) -> None:
 def _stage0_config(args: argparse.Namespace) -> Stage0Config:
     return Stage0Config(
         checkpoint=args.stage0_checkpoint,
-        vae_checkpoint=args.stage0_vae_checkpoint,
-        latent_norm=args.stage0_latent_norm,
         num_steps=args.stage0_num_steps,
         cfg_scale=args.stage0_cfg_scale,
         t_shift=args.stage0_t_shift,
@@ -129,6 +129,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             stage0=_stage0_config(args),
             stage1=_stage1_config(args),
             stage2=_stage2_config(args),
+            dino_checkpoint=args.dino_checkpoint,
             seed=args.seed,
             offload=args.offload,
             fill_holes=not args.no_fill_holes,
@@ -149,6 +150,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "stage0":
         with TaoFlowForgePipeline(
             stage0=_stage0_config(args),
+            dino_checkpoint=args.dino_checkpoint,
             seed=args.seed,
             image_size=args.image_size,
             device=args.device,
@@ -164,6 +166,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "stage1":
         with TaoFlowForgePipeline(
             stage1=_stage1_config(args),
+            dino_checkpoint=args.dino_checkpoint,
             image_size=args.image_size,
             device=args.device,
         ) as pipeline:
@@ -178,6 +181,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     with TaoFlowForgePipeline(
         stage2=_stage2_config(args),
+        dino_checkpoint=args.dino_checkpoint,
         image_size=args.image_size,
         device=args.device,
     ) as pipeline:

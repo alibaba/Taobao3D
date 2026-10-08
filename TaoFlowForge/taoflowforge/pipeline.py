@@ -57,6 +57,7 @@ class TaoFlowForgePipeline:
         stage0: Stage0Config | None = None,
         stage1: Stage1Config | None = None,
         stage2: Stage2Config | None = None,
+        dino_checkpoint: str | Path | None = None,
         seed: int = 42,
         offload: OffloadMode = "auto",
         fill_holes: bool = True,
@@ -69,6 +70,7 @@ class TaoFlowForgePipeline:
         self.stage0_config = stage0
         self.stage1_config = stage1
         self.stage2_config = stage2
+        self.dino_checkpoint = Path(dino_checkpoint) if dino_checkpoint is not None else None
         self.seed = self._validate_seed(seed)
         self.offload = offload
         self.fill_holes = bool(fill_holes)
@@ -93,6 +95,7 @@ class TaoFlowForgePipeline:
             stage0=config.stage0,
             stage1=config.stage1,
             stage2=config.stage2,
+            dino_checkpoint=config.dino_checkpoint,
             seed=config.seed,
             offload=config.offload,
             fill_holes=config.fill_holes,
@@ -135,9 +138,8 @@ class TaoFlowForgePipeline:
             assert isinstance(config, Stage0Config)
             self._stage0 = load_stage0_model(
                 config.checkpoint,
-                config.vae_checkpoint,
-                config.latent_norm,
                 "cpu",
+                dino_checkpoint_path=self.dino_checkpoint,
             )
             if config.compile_model:
                 try:
@@ -153,11 +155,17 @@ class TaoFlowForgePipeline:
         if 1 in requested and self._stage1 is None:
             config = self._require_config(1)
             assert isinstance(config, Stage1Config)
-            self._stage1 = load_stage1_model(config.checkpoint, "cpu")
+            self._stage1 = load_stage1_model(
+                config.checkpoint, "cpu",
+                dino_checkpoint_path=self.dino_checkpoint,
+            )
         if 2 in requested and self._stage2 is None:
             config = self._require_config(2)
             assert isinstance(config, Stage2Config)
-            self._stage2 = load_stage2_model(config.checkpoint, "cpu")
+            self._stage2 = load_stage2_model(
+                config.checkpoint, "cpu",
+                dino_checkpoint_path=self.dino_checkpoint,
+            )
 
         if not self._offload_enabled:
             if 0 in requested and self._stage0 is not None:

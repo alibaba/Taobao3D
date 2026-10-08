@@ -30,10 +30,12 @@ _EXAMPLE_IMAGES = [
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Launch the TaoFlowForge Gradio demo")
     parser.add_argument("--stage0-checkpoint", type=Path, required=True)
-    parser.add_argument("--stage0-vae-checkpoint", type=Path, required=True)
-    parser.add_argument("--stage0-latent-norm", type=Path, required=True)
     parser.add_argument("--stage1-checkpoint", type=Path, required=True)
     parser.add_argument("--stage2-checkpoint", type=Path, required=True)
+    parser.add_argument(
+        "--dino-checkpoint", type=Path, default=None,
+        help="HuggingFace DINOv3 pretrained directory (required when stage checkpoints lack DINO weights)",
+    )
     parser.add_argument("--device", default=None)
     parser.add_argument("--offload", choices=("auto", "on", "off"), default="auto")
     parser.add_argument("--host", default="127.0.0.1")
@@ -46,12 +48,11 @@ def build_pipeline(args: argparse.Namespace) -> TaoFlowForgePipeline:
     config = InferenceConfig(
         stage0=Stage0Config(
             checkpoint=args.stage0_checkpoint,
-            vae_checkpoint=args.stage0_vae_checkpoint,
-            latent_norm=args.stage0_latent_norm,
             compile_model=False,
         ),
         stage1=Stage1Config(checkpoint=args.stage1_checkpoint),
         stage2=Stage2Config(checkpoint=args.stage2_checkpoint),
+        dino_checkpoint=args.dino_checkpoint,
         offload=args.offload,
         fill_holes=True,
     )

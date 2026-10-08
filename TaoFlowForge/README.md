@@ -66,13 +66,13 @@ Run the complete image-to-mesh pipeline with:
 python -m taoflowforge.cli run \
   --image path/to/input.png \
   --stage0-checkpoint weights/stage0.pt \
-  --stage0-vae-checkpoint weights/stage0_vae.pt \
-  --stage0-latent-norm weights/stage0_latent_norm.pt \
   --stage1-checkpoint weights/stage1.pt \
   --stage2-checkpoint weights/stage2.pt \
   --output-dir output/example \
   --seed 42
 ```
+
+If the stage checkpoints do not embed DINOv3 weights, supply a HuggingFace pretrained directory with `--dino-checkpoint path/to/dinov3-large`.
 
 By default, models are moved on and off the GPU stage by stage to reduce peak memory usage. Use `--offload off` to keep available modules resident, or `--no-fill-holes` to preserve the raw Stage 2 topology without hole filling and normal repair.
 
@@ -101,8 +101,6 @@ Each stage can also be run independently. The intermediate NPZ files preserve Nu
 python -m taoflowforge.cli stage0 \
   --image path/to/input.png \
   --stage0-checkpoint weights/stage0.pt \
-  --stage0-vae-checkpoint weights/stage0_vae.pt \
-  --stage0-latent-norm weights/stage0_latent_norm.pt \
   --output-artifact output/stage0.npz --seed 42
 
 # Stage 1: occupied cells -> vertices
@@ -135,11 +133,10 @@ weights = Path("weights")
 config = InferenceConfig(
     stage0=Stage0Config(
         checkpoint=weights / "stage0.pt",
-        vae_checkpoint=weights / "stage0_vae.pt",
-        latent_norm=weights / "stage0_latent_norm.pt",
     ),
     stage1=Stage1Config(checkpoint=weights / "stage1.pt"),
     stage2=Stage2Config(checkpoint=weights / "stage2.pt"),
+    # dino_checkpoint=Path("path/to/dinov3-large"),  # if checkpoints lack DINO weights
     seed=42,
     output_dir=Path("output/example"),
 )
@@ -159,8 +156,6 @@ Launch the interactive web interface with:
 ```bash
 python gradio_demo.py \
   --stage0-checkpoint weights/stage0.pt \
-  --stage0-vae-checkpoint weights/stage0_vae.pt \
-  --stage0-latent-norm weights/stage0_latent_norm.pt \
   --stage1-checkpoint weights/stage1.pt \
   --stage2-checkpoint weights/stage2.pt \
   --device cuda:0 \
@@ -169,6 +164,15 @@ python gradio_demo.py \
 ```
 
 The demo runs the complete three-stage pipeline and progressively displays the Stage 0 occupancy point cloud, Stage 1 vertex cloud, and Stage 2 triangle topology. Intermediate files and final results are stored in a temporary directory named `/tmp/taoflowforge-*`. Use `--share` to request a public Gradio link.
+
+## Acknowledgements
+
+Our work builds upon these excellent repositories:
+
+- [TRELLIS](https://github.com/Microsoft/TRELLIS)
+- [TRELLIS.2](https://github.com/microsoft/TRELLIS.2)
+- [LATO](https://github.com/TianhaoZhao668/LATO)
+- [LATO.2](https://github.com/LoHhhha/LATO.2)
 
 ## Citation
 

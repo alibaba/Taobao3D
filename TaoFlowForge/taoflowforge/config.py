@@ -15,8 +15,6 @@ class Stage0Config:
     """Stage 0 occupancy generation settings."""
 
     checkpoint: Path
-    vae_checkpoint: Path
-    latent_norm: Path
     num_steps: int = 50
     cfg_scale: float = 7.5
     t_shift: float = 2.718
@@ -58,6 +56,7 @@ class InferenceConfig:
     stage0: Stage0Config
     stage1: Stage1Config
     stage2: Stage2Config
+    dino_checkpoint: Path | None = None
     seed: int = 42
     target_num_vertices: int = 3_000
     offload: OffloadMode = "auto"

@@ -11,7 +11,7 @@ from torch import nn
 from tqdm.auto import tqdm
 
 from ..random import deterministic_fps
-from .dino import DinoConditioner
+from .dino import DinoConditioner, load_pretrained_dino_state_dict
 from .octree_dit import RawOctreeDenoiser, cell_centers
 
 
@@ -372,6 +372,8 @@ def _validate_release_config(checkpoint: dict) -> None:
 def load_stage1_model(
     checkpoint_path: str | Path,
     device: str | torch.device = "cpu",
+    *,
+    dino_checkpoint_path: str | Path | None = None,
 ) -> Stage1Model:
     """Load every release tensor and page experts one at a time at inference."""
     checkpoint = torch.load(
@@ -417,6 +419,31 @@ def load_stage1_model(
             "Stage 1 checkpoint has incompatible tensor shapes: "
             + "; ".join(shape_mismatches[:20])
         )
+
+    _dino_prefix = "dino_encoder."
+    if not any(k.startswith(_dino_prefix) for k in mapped):
+        if dino_checkpoint_path is None:
+            raise RuntimeError(
+                "Stage 1 checkpoint contains no DINO weights; "
+                "pass --dino-checkpoint to supply a HuggingFace DINOv3 directory"
+            )
+        for k, v in load_pretrained_dino_state_dict(dino_checkpoint_path).items():
+            target_key = _dino_prefix + k
+            if target_key in expected:
+                exp_shape = tuple(expected[target_key].shape)
+                act_shape = tuple(v.shape)
+                if act_shape != exp_shape:
+                    shape_mismatches.append(
+                        f"DINO pretrained {k}: {act_shape} != {exp_shape}"
+                    )
+                else:
+                    mapped[target_key] = v
+        if shape_mismatches:
+            raise RuntimeError(
+                "DINO pretrained weights have incompatible shapes: "
+                + "; ".join(shape_mismatches[:20])
+            )
+
     missing = sorted(set(expected) - set(mapped))
     if missing:
         raise RuntimeError(

@@ -9,7 +9,7 @@ import torch
 import trimesh
 from torch import nn
 
-from .dino import DinoConditioner
+from .dino import DinoConditioner, load_pretrained_dino_state_dict
 from .dit import RefineDiT
 from .flow import EulerFlowSampler
 from .topology_decoder import TopologyDecoder
@@ -269,6 +269,8 @@ def _map_checkpoint_key(key: str) -> str:
 def load_stage2_model(
     checkpoint_path: str | Path,
     device: str | torch.device = "cpu",
+    *,
+    dino_checkpoint_path: str | Path | None = None,
 ) -> Stage2Model:
     """Load all inference-required tensors and reject silent mismatches."""
     checkpoint = torch.load(
@@ -315,6 +317,30 @@ def load_stage2_model(
             "Stage 2 checkpoint has incompatible tensor shapes: "
             + "; ".join(shape_mismatches[:20])
         )
+
+    _dino_prefix = "_dino_encoder."
+    if not any(k.startswith(_dino_prefix) for k in mapped):
+        if dino_checkpoint_path is None:
+            raise RuntimeError(
+                "Stage 2 checkpoint contains no DINO weights; "
+                "pass --dino-checkpoint to supply a HuggingFace DINOv3 directory"
+            )
+        for k, v in load_pretrained_dino_state_dict(dino_checkpoint_path).items():
+            target_key = _dino_prefix + k
+            if target_key in expected:
+                exp_shape = tuple(expected[target_key].shape)
+                act_shape = tuple(v.shape)
+                if act_shape != exp_shape:
+                    shape_mismatches.append(
+                        f"DINO pretrained {k}: {act_shape} != {exp_shape}"
+                    )
+                else:
+                    mapped[target_key] = v
+        if shape_mismatches:
+            raise RuntimeError(
+                "DINO pretrained weights have incompatible shapes: "
+                + "; ".join(shape_mismatches[:20])
+            )
 
     missing = sorted(set(expected) - set(mapped))
     if missing:

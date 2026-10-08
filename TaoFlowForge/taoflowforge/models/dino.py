@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import torch
 from torch import nn
 from torchvision import transforms
@@ -86,3 +88,15 @@ class DinoConditioner(nn.Module):
         )
         output = self.model(self.transform(image)).last_hidden_state
         return output[:, 1 + self.num_register_tokens :, :]
+
+
+def load_pretrained_dino_state_dict(
+    pretrained_path: str | Path,
+) -> dict[str, torch.Tensor]:
+    """Load DINOv3 weights from a HuggingFace pretrained directory.
+
+    Returns a state_dict whose keys match :class:`DinoConditioner.state_dict`
+    (i.e. prefixed with ``model.``).
+    """
+    pretrained = DINOv3ViTModel.from_pretrained(str(pretrained_path))
+    return {"model." + k: v for k, v in pretrained.state_dict().items()}
