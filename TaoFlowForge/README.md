@@ -52,8 +52,6 @@ Please download the checkpoint from [modelscope](https://www.modelscope.cn/model
 ```text
 weights/
 ├── stage0.pt
-├── stage0_vae.pt
-├── stage0_latent_norm.pt
 ├── stage1.pt
 └── stage2.pt
 ```
