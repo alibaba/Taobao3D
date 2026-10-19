@@ -11,7 +11,7 @@ const { lang } = Astro.props;
 const t = useTranslations(lang);
 
 const posts = (await getCollection('blog'))
-  .filter((p) => p.data.lang === lang)
+  .filter((p) => p.data.lang === lang && !p.data.draft)
   .sort((a, b) => b.data.date.localeCompare(a.data.date));
 
 const fmt = (iso: string) =>

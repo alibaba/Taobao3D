@@ -60,6 +60,7 @@ const blog = defineCollection({
     description: z.string().default(''),
     lang: z.enum(['zh', 'en']),
     slug: z.string(),
+    draft: z.boolean().default(false), // true => not listed and no page is built
   }),
 });
 

@@ -4,6 +4,7 @@ date: "2026-09-30"
 description: "A walkthrough of the TaoFlowForge technical report — a foundation model for production-ready 3D mesh generation that decomposes the pipeline into three cascaded stages: coarse vertex generation, late-stage progressive refinement, and joint connectivity-normal prediction, achieving state-of-the-art results among open-source native mesh generators."
 lang: "en"
 slug: "taoflowforge"
+draft: true
 ---
 
 > Paper: TaoFlowForge: Progressive Native Mesh Generation via Cascaded Flow Matching  

@@ -4,6 +4,7 @@ date: "2026-09-30"
 description: "解读 TaoFlowForge 技术报告——面向生产级 3D 网格生成的基础模型，通过三阶段级联流程（粗顶点生成、后期渐进精炼、联合连接与法向量预测）生成拓扑干净、可直接投入生产的三角网格，在开源原生网格生成方法中达到最优水平。"
 lang: "zh"
 slug: "taoflowforge"
+draft: true
 ---
 
 > 论文：TaoFlowForge: Progressive Native Mesh Generation via Cascaded Flow Matching  
