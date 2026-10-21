@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gc
 import json
+import sys
 import time
 import warnings
 from dataclasses import asdict, dataclass
@@ -18,7 +19,7 @@ from PIL import Image
 
 from .artifacts import load_stage_artifact, save_stage_artifact
 from .config import InferenceConfig, OffloadMode, Stage0Config, Stage1Config, Stage2Config
-from .image import ImageInput, prepare_image
+from .image import BackgroundRemover, ImageInput, REMBG_DISABLED_WARNING, prepare_image
 from .models.stage0 import Stage0Model, load_stage0_model
 from .models.stage1 import Stage1Model, load_stage1_model
 from .models.stage2 import Stage2Model, load_stage2_model
@@ -58,6 +59,7 @@ class TaoFlowForgePipeline:
         stage1: Stage1Config | None = None,
         stage2: Stage2Config | None = None,
         dino_checkpoint: str | Path | None = None,
+        rembg_model: str | Path | None = None,
         seed: int = 42,
         offload: OffloadMode = "auto",
         fill_holes: bool = True,
@@ -83,6 +85,12 @@ class TaoFlowForgePipeline:
         self._stage0: Stage0Model | None = None
         self._stage1: Stage1Model | None = None
         self._stage2: Stage2Model | None = None
+        self.rembg_model = Path(rembg_model) if rembg_model is not None else None
+        self._background_remover: BackgroundRemover | None = None
+        if self.rembg_model is None:
+            print(REMBG_DISABLED_WARNING, file=sys.stderr, flush=True)
+        elif not self.rembg_model.is_dir():
+            raise FileNotFoundError(f"RMBG model directory does not exist: {self.rembg_model}")
 
     @classmethod
     def from_config(
@@ -96,6 +104,7 @@ class TaoFlowForgePipeline:
             stage1=config.stage1,
             stage2=config.stage2,
             dino_checkpoint=config.dino_checkpoint,
+            rembg_model=config.rembg_model,
             seed=config.seed,
             offload=config.offload,
             fill_holes=config.fill_holes,
@@ -133,6 +142,7 @@ class TaoFlowForgePipeline:
         if invalid:
             raise ValueError(f"Unsupported stage numbers: {sorted(invalid)}")
 
+        self._get_background_remover()
         if 0 in requested and self._stage0 is None:
             config = self._require_config(0)
             assert isinstance(config, Stage0Config)
@@ -175,9 +185,18 @@ class TaoFlowForgePipeline:
             if 2 in requested and self._stage2 is not None:
                 self._stage2.to(self.device)
 
+    def _get_background_remover(self) -> BackgroundRemover | None:
+        if self.rembg_model is not None and self._background_remover is None:
+            # Match master: keep RMBG on CPU when stage offloading is enabled.
+            device = torch.device("cpu") if self._offload_enabled else self.device
+            self._background_remover = BackgroundRemover(self.rembg_model, device)
+        return self._background_remover
+
     def _prepare_image(self, image: ImageInput | torch.Tensor) -> torch.Tensor:
         if not torch.is_tensor(image):
-            return prepare_image(image, self.image_size)
+            return prepare_image(
+                image, self.image_size, background_remover=self._get_background_remover(),
+            )
         tensor = image.detach().to(device="cpu", dtype=torch.float32)
         if tensor.ndim != 3 or tensor.shape[0] != 3:
             raise ValueError(f"Expected image shape (3,H,W), got {tuple(tensor.shape)}")
@@ -190,7 +209,15 @@ class TaoFlowForgePipeline:
             )[0]
         if not torch.isfinite(tensor).all():
             raise ValueError("Image tensor contains non-finite values")
-        return tensor.clamp(0.0, 1.0).contiguous()
+        tensor = tensor.clamp(0.0, 1.0).contiguous()
+        if self.rembg_model is not None:
+            # Tensor inputs represent RGB in [0, 1]; use the same PIL mask path.
+            array = tensor.permute(1, 2, 0).mul(255).round().byte().numpy()
+            return prepare_image(
+                Image.fromarray(array), self.image_size,
+                background_remover=self._get_background_remover(),
+            )
+        return tensor
 
     def _activate_stage(self, stage: int) -> None:
         if not self._offload_enabled:
@@ -518,6 +545,9 @@ class TaoFlowForgePipeline:
             self._stage1.offload()
         if self._stage2 is not None:
             self._stage2.to("cpu")
+        if self._background_remover is not None:
+            self._background_remover.model.to("cpu")
+            self._background_remover = None
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

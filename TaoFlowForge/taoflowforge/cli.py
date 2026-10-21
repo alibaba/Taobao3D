@@ -20,6 +20,10 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
         "--dino-checkpoint", type=Path, default=None,
         help="HuggingFace DINOv3 pretrained directory (required when stage checkpoints lack DINO weights)",
     )
+    parser.add_argument(
+        "--rembg-model", "--rembg_model", type=Path, default=None,
+        help="Local RMBG-2.0 / BiRefNet model directory; omitted: warn and keep current preprocessing",
+    )
     parser.add_argument("--no-progress", action="store_true")
 
 
@@ -130,6 +134,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             stage1=_stage1_config(args),
             stage2=_stage2_config(args),
             dino_checkpoint=args.dino_checkpoint,
+            rembg_model=args.rembg_model,
             seed=args.seed,
             offload=args.offload,
             fill_holes=not args.no_fill_holes,
@@ -151,6 +156,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         with TaoFlowForgePipeline(
             stage0=_stage0_config(args),
             dino_checkpoint=args.dino_checkpoint,
+            rembg_model=args.rembg_model,
             seed=args.seed,
             image_size=args.image_size,
             device=args.device,
@@ -167,6 +173,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         with TaoFlowForgePipeline(
             stage1=_stage1_config(args),
             dino_checkpoint=args.dino_checkpoint,
+            rembg_model=args.rembg_model,
             image_size=args.image_size,
             device=args.device,
         ) as pipeline:
@@ -182,6 +189,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     with TaoFlowForgePipeline(
         stage2=_stage2_config(args),
         dino_checkpoint=args.dino_checkpoint,
+        rembg_model=args.rembg_model,
         image_size=args.image_size,
         device=args.device,
     ) as pipeline:

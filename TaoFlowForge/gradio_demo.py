@@ -14,6 +14,7 @@ import trimesh
 
 from taoflowforge import InferenceConfig, Stage0Config, Stage1Config, Stage2Config
 from taoflowforge.artifacts import load_stage_artifact
+from taoflowforge.image import REMBG_DISABLED_WARNING
 from taoflowforge.pipeline import TaoFlowForgePipeline
 
 _EXAMPLES_DIR = Path(__file__).resolve().parent / "examples"
@@ -36,6 +37,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--dino-checkpoint", type=Path, default=None,
         help="HuggingFace DINOv3 pretrained directory (required when stage checkpoints lack DINO weights)",
     )
+    parser.add_argument(
+        "--rembg-model", "--rembg_model", type=Path, default=None,
+        help="Local RMBG-2.0 / BiRefNet model directory; omitted: warn and keep current preprocessing",
+    )
     parser.add_argument("--device", default=None)
     parser.add_argument("--offload", choices=("auto", "on", "off"), default="auto")
     parser.add_argument("--host", default="127.0.0.1")
@@ -53,6 +58,7 @@ def build_pipeline(args: argparse.Namespace) -> TaoFlowForgePipeline:
         stage1=Stage1Config(checkpoint=args.stage1_checkpoint),
         stage2=Stage2Config(checkpoint=args.stage2_checkpoint),
         dino_checkpoint=args.dino_checkpoint,
+        rembg_model=args.rembg_model,
         offload=args.offload,
         fill_holes=True,
     )
@@ -379,7 +385,11 @@ def build_app(pipeline: TaoFlowForgePipeline) -> gr.Blocks:
 
         output_dir = Path(tempfile.mkdtemp(prefix="taoflowforge-"))
         yield (
-            _status_card("Preparing input and running Stage 0..."),
+            _status_card(
+                "Removing background and running Stage 0..."
+                if pipeline.rembg_model is not None
+                else "Preparing input and running Stage 0..."
+            ),
             gr.update(selected="stage0"),
             s0_figure,
             s1_figure,
@@ -490,6 +500,10 @@ def build_app(pipeline: TaoFlowForgePipeline) -> gr.Blocks:
             '<p>Progressive 3D generation through occupancy, vertices, and topology.</p>'
             "</section>"
         )
+        if pipeline.rembg_model is None:
+            gr.Markdown(f"**{REMBG_DISABLED_WARNING}**")
+        else:
+            gr.Markdown("**Background removal enabled: RMBG-2.0 / BiRefNet (white background).**")
         status = gr.HTML(
             _status_card("Ready. Upload an image to begin.", "idle"),
             elem_id="status-panel",
@@ -498,6 +512,8 @@ def build_app(pipeline: TaoFlowForgePipeline) -> gr.Blocks:
             with gr.Column(scale=1, elem_classes="app-panel"):
                 image = gr.Image(
                     type="pil",
+                    # Preserve alpha for RMBG; keep the legacy RGB path when disabled.
+                    image_mode="RGBA" if pipeline.rembg_model is not None else "RGB",
                     label="Input image",
                     height=340,
                 )

@@ -20,7 +20,8 @@ For more details, visit 👉 [project homepage](https://alibaba.github.io/Taobao
 ---
 
 ## 🔥 News
-Sep 30, 2026: We release the **TaoFlowForge** technical report and the codebase along with the model weights! [[arxiv]](https://arxiv.org/pdf/2609.37139) [[code]](https://github.com/alibaba/Taobao3D/tree/main/TaoFlowForge)
+* Sep 30, 2026: We release the **TaoFlowForge** technical report and the codebase along with the model weights! [[arxiv]](https://arxiv.org/pdf/2609.37139) [[code]](https://github.com/alibaba/Taobao3D/tree/main/TaoFlowForge)
+* Oct 21, 2026: We update the model weights of **TaoFlowForge** on [modelscope](https://www.modelscope.cn/models/Taobao3D/TaoFlowForge/files)!
 
 ---
 

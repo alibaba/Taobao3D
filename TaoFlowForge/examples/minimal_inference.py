@@ -16,6 +16,9 @@ config = InferenceConfig(
     # Optional: provide a HuggingFace DINOv3 directory when stage checkpoints
     # do not embed DINO weights.  Omit if checkpoints already include them.
     # dino_checkpoint=Path("path/to/dinov3-large"),
+    # Optional local RMBG-2.0 / BiRefNet directory, matching master's preprocessing.
+    # If omitted, a WARNING is printed and existing image preprocessing is unchanged.
+    # rembg_model=Path("path/to/RMBG-2.0"),
     seed=42,
     output_dir=Path("output/example"),
 )

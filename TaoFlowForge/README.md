@@ -74,6 +74,28 @@ python -m taoflowforge.cli run \
 
 If the stage checkpoints do not embed DINOv3 weights, supply a HuggingFace pretrained directory with `--dino-checkpoint path/to/dinov3-large`.
 
+### Optional Background Removal
+
+Download the optional background-removal model from the official [BRIA RMBG-2.0 repository on Hugging Face](https://huggingface.co/briaai/RMBG-2.0). This model is distributed separately from the TaoFlowForge stage checkpoints. Sign in to Hugging Face and complete the model's access form and accept its terms before downloading gated files.
+
+With the Hugging Face CLI installed, authenticate using `hf auth login`, then download the model repository to a local directory:
+
+```bash
+hf download briaai/RMBG-2.0 --local-dir weights/RMBG-2.0
+```
+
+Keep the model configuration, weights, and custom Python code together in that directory; downloading only a `.safetensors` or `.bin` file is not sufficient. TaoFlowForge loads RMBG from local files only and does not automatically download it during inference.
+
+Add `--rembg-model weights/RMBG-2.0` to a Gradio launch, the full-pipeline CLI command, or any stage-wise CLI command to enable the same RMBG-2.0 / BiRefNet preprocessing used on the `master` branch. The alias `--rembg_model` is also accepted. In the Python API, set `rembg_model=Path("weights/RMBG-2.0")` in `InferenceConfig`. Replace `weights/RMBG-2.0` with your actual model directory if stored elsewhere, not an individual checkpoint file. Only use trusted model directories: loading uses `trust_remote_code=True` to execute the model's custom Python code.
+
+**License notice:** RMBG-2.0 has its own license, separate from TaoFlowForge. The model card specifies [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/deed.en) for non-commercial use; commercial use requires a separate agreement with BRIA. Review the current license and access terms on the official model page before downloading, using, or redistributing the model.
+
+The model runs in float32 with a 1024×1024, ImageNet-normalized input. Existing transparency is first composited onto white; the predicted soft foreground mask then replaces the background with white before the usual square padding and resize. The full pipeline processes the image once and shares the result across all three stages; `input.png` records this processed input. Use the same image and RMBG settings when running stages independently or resuming.
+
+**WARNING:** If no RMBG directory is provided, background removal is disabled. A visible warning is printed and existing image preprocessing remains unchanged; real image backgrounds are retained. An invalid supplied model directory or a loading/inference error raises an error instead of silently disabling background removal.
+
+The optional model may require additional dependencies such as `timm`; install the dependencies documented by your RMBG-2.0 model release. The Python `rembg` package and ONNX Runtime are not used. With stage offloading enabled, the remover stays on CPU, matching `master`; a performance warning is printed. With `--offload off`, it uses the selected inference device.
+
 By default, models are moved on and off the GPU stage by stage to reduce peak memory usage. Use `--offload off` to keep available modules resident, or `--no-fill-holes` to preserve the raw Stage 2 topology without hole filling and normal repair.
 
 The output directory contains:
@@ -137,6 +159,7 @@ config = InferenceConfig(
     stage1=Stage1Config(checkpoint=weights / "stage1.pt"),
     stage2=Stage2Config(checkpoint=weights / "stage2.pt"),
     # dino_checkpoint=Path("path/to/dinov3-large"),  # if checkpoints lack DINO weights
+    # rembg_model=Path("path/to/RMBG-2.0"),  # optional background removal; warns if omitted
     seed=42,
     output_dir=Path("output/example"),
 )
@@ -164,6 +187,8 @@ python gradio_demo.py \
 ```
 
 The demo runs the complete three-stage pipeline and progressively displays the Stage 0 occupancy point cloud, Stage 1 vertex cloud, and Stage 2 triangle topology. Intermediate files and final results are stored in a temporary directory named `/tmp/taoflowforge-*`. Use `--share` to request a public Gradio link.
+
+Append `--rembg-model path/to/RMBG-2.0` (or `--rembg_model`) to enable background removal. When enabled, uploaded transparency is preserved until compositing onto white. When omitted, the existing Gradio RGB input behavior is retained and a persistent **WARNING** appears on the page as well as in the terminal.
 
 ## Acknowledgements
 

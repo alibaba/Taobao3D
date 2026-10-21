@@ -63,6 +63,7 @@ class InferenceConfig:
     fill_holes: bool = True
     image_size: int = 1_024
     output_dir: Path = field(default_factory=lambda: Path("output"))
+    rembg_model: Path | None = None
 
     def __post_init__(self) -> None:
         if self.offload not in {"auto", "on", "off"}:
